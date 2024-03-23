@@ -8,8 +8,9 @@
 // #define ENABLE_OTA
 // #define ENABLE_MQTT
 // #define ENABLE_SCREEN
-#define ENABLE_BENCHMARK
-#define ENABLE_BENCHMARK_BACKGROUND
+// #define ENABLE_BENCHMARK
+// #define ENABLE_BENCHMARK_BACKGROUND
+// #define WAIT_FOR_SERIAL
 
 #if defined(ENABLE_OTA) || defined(ENABLE_MQTT)
 #include "WiFiManager.h"
@@ -65,9 +66,7 @@ U8G2_SSD1306_128X64_NONAME_F_SW_I2C
 u8g2(U8G2_R0, 22, 21, U8X8_PIN_NONE);
 #endif
 
-static void handleClick() { stateManager.selectNextAnimation(); };
-
-void updateDisplay() {
+static void updateDisplay() {
 #ifdef ENABLE_SCREEN
   u8g2.clearBuffer();
   u8g2.setFont(u8g2_font_ncenB08_tr);
@@ -87,6 +86,11 @@ void updateDisplay() {
 #endif
 }
 
+static void handleClick() {
+  stateManager.selectNextAnimation();
+  updateDisplay();
+}
+
 bool firstBackgroundLoop = true;
 
 TaskHandle_t backgroundTask;
@@ -100,12 +104,11 @@ void backgroundLoop(void *parameter) {
     bootButton.tick();
 
 #ifdef ENABLE_OTA
-    handleOTA();
+    otaManager.handle();
 #endif
 
     if (firstBackgroundLoop) {
 #ifdef ENABLE_SCREEN
-      u8g2.begin();
       updateDisplay();
 #endif
       firstBackgroundLoop = false;
@@ -116,6 +119,8 @@ void backgroundLoop(void *parameter) {
       stateManager.selectNextAnimation();
       updateDisplay();
     }
+
+    delay(10);
 
 #ifdef ENABLE_BENCHMARK_BACKGROUND
     Serial.print("Background benchmark: ");
@@ -129,16 +134,22 @@ void setup() {
 
   bootButton.attachClick(handleClick);
 
+#ifdef ENABLE_SCREEN
+  u8g2.begin();
+#endif
+
+#ifdef WAIT_FOR_SERIAL
   while (!Serial) {
     ;  // wait for serial port to connect. Needed for native USB port only
   }
+#endif
 
 #if defined(ENABLE_OTA) || defined(ENABLE_MQTT)
-  WiFiConnection.setup();
+  wifiManager.setup();
 #endif
 
 #ifdef ENABLE_OTA
-  setupOTA();
+  otaManager.setup();
 #endif
 
 #ifdef ENABLE_MQTT

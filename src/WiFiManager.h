@@ -1,3 +1,6 @@
+#ifndef WIFI_MANAGER_H
+#define WIFI_MANAGER_H
+
 #include <WiFi.h>
 
 #include "secrets.h"
@@ -20,3 +23,7 @@ class WiFiManager {
     Serial.println(WiFi.localIP());
   }
 };
+
+WiFiManager wifiManager;
+
+#endif
