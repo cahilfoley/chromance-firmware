@@ -1,13 +1,17 @@
 #ifndef RIPPLE_H_
 #define RIPPLE_H_
 
-// WARNING: These slow things down enough to affect performance. Don't turn on
-// unless you need them! #define DEBUG_ADVANCEMENT  // Print debug messages
-// about ripples' movement #define DEBUG_RENDERING  // Print debug messages
-// about translating logical to actual position
+/**
+ * WARNING: These slow things down enough to affect performance. Don't turn on
+ * unless you need them!
+ */
+// #define DEBUG_ADVANCEMENT  // Print debug messages about ripples' movement
+// #define DEBUG_RENDERING  // Print debug messages about translating logical to
+// actual position
 
-#include <Adafruit_DotStar.h>
+#include <FastLED.h>
 
+#include "../config.h"
 #include "mapping.h"
 
 enum rippleState {
@@ -33,12 +37,12 @@ float fmap(float x, float in_min, float in_max, float out_min, float out_max) {
 class Ripple {
  public:
   Ripple(int id) : rippleId(id) {
-    Serial.print("Instanced ripple #");
-    Serial.println(rippleId);
+    // Serial.print("Instanced ripple #");
+    // Serial.println(rippleId);
   }
 
   rippleState state = dead;
-  unsigned long color;
+  CRGB color;
 
   /*
      If within a node: 0 is node, 1 is direction
@@ -47,14 +51,15 @@ class Ripple {
   int position[2];
 
   // Place the Ripple in a node
-  void start(byte n, byte d, unsigned long _color, float _speed,
-             unsigned long _lifespan, RippleBehavior _behavior) {
+  void start(byte n, byte d, CRGB _color, float _speed, unsigned long _lifespan,
+             RippleBehavior _behavior) {
     color = _color;
     speed = _speed;
     lifespan = _lifespan;
     behavior = _behavior;
 
     birthday = millis();
+    lastRender = millis();
     pressure = 0;
     state = withinNode;
 
@@ -71,20 +76,21 @@ class Ripple {
     // Serial.println(position[1]);
   }
 
-  void advance(byte ledColors[40][14][3]) {
-    unsigned long age = millis() - birthday;
+  void advance(CRGB ledColors[STRIP_COUNT * STRIP_LED_COUNT]) {
+    unsigned long now = millis();
+    unsigned long age = now - birthday;
+    unsigned long timeSinceLastRender = now - lastRender;
+    float timeMultiplier = fmap(timeSinceLastRender, 6, 60, 1, 10);
 
     if (state == dead) return;
 
-    pressure += fmap(float(age), 0.0, float(lifespan), speed,
-                     0.0);  // Ripple slows down as it ages
-    // TODO: Motion of ripple is severely affected by loop speed. Make it time
-    // invariant
+    pressure +=
+        fmap(float(age), 0.0, float(lifespan), speed, 0.0) * timeMultiplier;
 
     if (pressure < 1 &&
         (state == travelingUpwards || state == travelingDownwards)) {
       // Ripple is visible but hasn't moved - render it to avoid flickering
-      renderLed(ledColors, age);
+      renderLED(ledColors, age);
     }
 
     while (pressure >= 1) {
@@ -262,7 +268,8 @@ class Ripple {
             Serial.println("  (starting at top)");
 #endif
             state = travelingDownwards;
-            position[1] = 13;  // Starting at top of 14-LED-long strip
+            position[1] =
+                STRIP_LED_COUNT - 1;  // Starting at top of 14-LED-long strip
           }
           break;
         }
@@ -270,7 +277,7 @@ class Ripple {
         case travelingUpwards: {
           position[1]++;
 
-          if (position[1] >= 14) {
+          if (position[1] >= STRIP_LED_COUNT) {
             // We've reached the top!
 #ifdef DEBUG_ADVANCEMENT
             Serial.print("  Reached top of seg. ");
@@ -348,7 +355,7 @@ class Ripple {
 
       if (state == travelingUpwards || state == travelingDownwards) {
         // Ripple is visible - render it
-        renderLed(ledColors, age);
+        renderLED(ledColors, age);
       }
     }
 
@@ -367,11 +374,14 @@ class Ripple {
       state = dead;
       position[0] = position[1] = pressure = age = 0;
     }
+
+    lastRender = millis();
   }
 
  private:
   float speed;             // Each loop, ripples move this many LED's.
   unsigned long lifespan;  // The ripple stops after this many milliseconds
+  unsigned long lastRender;
 
   /*
      0: Always goes straight ahead if possible
@@ -388,26 +398,60 @@ class Ripple {
   static byte rippleCount;  // Used to give them unique ID's
   byte rippleId;            // Used to identify this ripple in debug output
 
-  void renderLed(byte ledColors[40][14][3], unsigned long age) {
-    int strip = ledAssignments[position[0]][0];
-    int led = ledAssignments[position[0]][2] + position[1];
+  void renderLED(CRGB ledColors[STRIP_COUNT * STRIP_LED_COUNT],
+                 unsigned long age) {
+    int stripIndex = position[0];
+    int channel = ledAssignments[stripIndex][0];
+    int channelLEDOffset = ledAssignments[stripIndex][1];
+    int stripStart = channelOffsets[channel] + ledAssignments[stripIndex][1];
+    int stripEnd = channelOffsets[channel] + ledAssignments[stripIndex][2];
 
-    int red = ledColors[position[0]][position[1]][0];
-    int green = ledColors[position[0]][position[1]][1];
-    int blue = ledColors[position[0]][position[1]][2];
+    float headPosition = fmap(position[1], 0, 13, stripEnd, stripStart);
+    int led = round(headPosition);
 
-    ledColors[position[0]][position[1]][0] =
-        byte(min(255, max(0, int(fmap(float(age), 0.0, float(lifespan),
-                                      (color >> 8) & 0xFF, 0.0)) +
-                                 red)));
-    ledColors[position[0]][position[1]][1] =
-        byte(min(255, max(0, int(fmap(float(age), 0.0, float(lifespan),
-                                      (color >> 16) & 0xFF, 0.0)) +
-                                 green)));
-    ledColors[position[0]][position[1]][2] = byte(min(
-        255,
-        max(0, int(fmap(float(age), 0.0, float(lifespan), color & 0xFF, 0.0)) +
-                   blue)));
+#ifdef DEBUG_RENDERING
+    Serial.print("Position: ");
+    Serial.print(position[0]);
+    Serial.print(", ");
+    Serial.print(position[1]);
+    Serial.print(" -> ");
+    Serial.print("Rendering ripple position (stripIndex: ");
+    Serial.print(stripIndex);
+    Serial.print(", stripOffset: ");
+    Serial.print(stripOffset);
+    Serial.print(", ledIndex: ");
+    Serial.println(ledIndex);
+#endif
+
+    CRGB currentColour = ledColors[led];
+
+    ledColors[led].setRGB(
+        byte(min(255, max(0, int(fmap(float(age), 0.0, float(lifespan), color.r,
+                                      0.0)) +
+                                 currentColour.r))),
+        byte(min(255, max(0, int(fmap(float(age), 0.0, float(lifespan), color.g,
+                                      0.0)) +
+                                 currentColour.g))),
+        byte(min(255, max(0, int(fmap(float(age), 0.0, float(lifespan), color.b,
+                                      0.0)) +
+                                 currentColour.b))));
+
+    int nextLED = headPosition + 1;
+    if (pressure < 1 && nextLED % STRIP_LED_COUNT != 0) {
+      CRGB nextCurrentColour = ledColors[nextLED];
+
+      // If we are partially into the next LED we can partially render it
+      ledColors[nextLED].setRGB(
+          byte(min(255, max(0, int(fmap(float(age), 0.0, float(lifespan),
+                                        color.r * pressure, 0.0) +
+                                   nextCurrentColour.r)))),
+          byte(min(255, max(0, int(fmap(float(age), 0.0, float(lifespan),
+                                        color.g * pressure, 0.0) +
+                                   nextCurrentColour.g)))),
+          byte(min(255, max(0, int(fmap(float(age), 0.0, float(lifespan),
+                                        color.b * pressure, 0.0) +
+                                   nextCurrentColour.b)))));
+    }
 
 #ifdef DEBUG_RENDERING
     Serial.print("Rendering ripple position (");

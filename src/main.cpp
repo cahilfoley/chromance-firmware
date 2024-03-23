@@ -1,22 +1,24 @@
 #include <Arduino.h>
 #include <OneButton.h>
 
+#include "StateManager.h"
+#include "config.h"
+
 #define ENABLE_LEDS
 // #define ENABLE_OTA
 // #define ENABLE_MQTT
 // #define ENABLE_SCREEN
 #define ENABLE_BENCHMARK
+#define ENABLE_BENCHMARK_BACKGROUND
 
 #if defined(ENABLE_OTA) || defined(ENABLE_MQTT)
 #include "WiFiManager.h"
 #endif
 
 #ifdef ENABLE_LEDS
-#include <Adafruit_DotStar.h>
-#include <SPI.h>
+#include <FastLED.h>
 
-#include "mapping.h"
-#include "ripple.h"
+#include "animation/Ripple.h"
 #endif
 
 #ifdef ENABLE_SCREEN
@@ -32,44 +34,14 @@
 #include "MQTTManager.h"
 #endif
 
-// Auto pulse configuration
-enum AutoPulseType { RandomPulses = 0, CubePulses = 1, StarburstPulses = 2 };
-const char* autoPulseNames[] = {
-    "Random Pulses",
-    "Cube Pulses",
-    "Starburst Pulses",
-};
-
-#define randomPulsesEnabled true     // Fire random pulses from random nodes
-#define cubePulsesEnabled true       // Draw cubes at random nodes
-#define starburstPulsesEnabled true  // Draw starbursts
-
-#define randomPulseTime 2000  // Fire a random pulse every (this many) ms
-
-byte numberOfAutoPulseTypes =
-    randomPulsesEnabled + cubePulsesEnabled + starburstPulsesEnabled;
-AutoPulseType currentAutoPulseType = RandomPulses;
-#define autoPulseChangeTime 30000
-unsigned long lastAutoPulseChange;
-
 OneButton bootButton = OneButton(0, true, true);
 
 // Setup LEDs and animations
 #ifdef ENABLE_LEDS
-int lengths[] = {154, 168, 84,
-                 154};  // Strips are different lengths because I am a dumb
+CRGB leds[STRIP_COUNT *
+          STRIP_LED_COUNT];  // LED buffer - each ripple writes to this
 
-Adafruit_DotStar strip0(lengths[0], 5, 18, DOTSTAR_GRB);
-Adafruit_DotStar strip1(lengths[1], 19, 26, DOTSTAR_GRB);
-Adafruit_DotStar strip2(lengths[2], 25, 33, DOTSTAR_GRB);
-Adafruit_DotStar strip3(lengths[3], 32, 23, DOTSTAR_GRB);
-
-Adafruit_DotStar strips[4] = {strip0, strip1, strip2, strip3};
-
-byte ledColors[40][14][3];  // LED buffer - each ripple writes to this, then we
-                            // write this to the strips
-float decay = 0.97;  // Multiply all LED's by this amount each tick to create
-                     // fancy fading tails
+int lastHueValue = 0;
 
 // These ripples are endlessly reused so we don't need to do any memory
 // management
@@ -93,39 +65,69 @@ U8G2_SSD1306_128X64_NONAME_F_SW_I2C
 u8g2(U8G2_R0, 22, 21, U8X8_PIN_NONE);
 #endif
 
-static void selectNextAnimation() {
-  while (true) {
-    currentAutoPulseType = static_cast<AutoPulseType>(
-        (static_cast<int>(currentAutoPulseType) + 1) % numberOfAutoPulseTypes);
-    if (currentAutoPulseType == RandomPulses && randomPulsesEnabled) break;
-    if (currentAutoPulseType == CubePulses && cubePulsesEnabled) break;
-    if (currentAutoPulseType == StarburstPulses && starburstPulsesEnabled)
-      break;
-  }
+static void handleClick() { stateManager.selectNextAnimation(); };
 
-  lastAutoPulseChange = millis();
-
+void updateDisplay() {
 #ifdef ENABLE_SCREEN
   u8g2.clearBuffer();
-  u8g2.setFont(u8g2_font_7x14B_tr);
-  char buffer[128];  // Buffer to hold the formatted string
-  sprintf(buffer, "Animation: %s", autoPulseNames[currentAutoPulseType]);
-  u8g2.drawStr(10, 10, buffer);
-  u8g2.drawStr(10, 30, "Play Mode: Automatic");
-  u8g2.sendBuffer();
+  u8g2.setFont(u8g2_font_ncenB08_tr);
+  char animationBuffer[50];
+  sprintf(animationBuffer, "A: %s", autoPulseNames[stateManager.animation]);
+  u8g2.drawStr(5, 10, animationBuffer);
+  char brightnessBuffer[50];
+  sprintf(brightnessBuffer, "B: %d", stateManager.brightness);
+  u8g2.drawStr(5, 30, brightnessBuffer);
+#if defined(ENABLE_OTA) || defined(ENABLE_MQTT)
+  char wifiBuffer[50];
+  sprintf(wifiBuffer, "W: %s",
+          WiFiConnection.isConnected() ? "Connected" : "Disconnected");
+  u8g2.drawStr(5, 50, wifiBuffer);
+#endif
+  u8g2.display();
 #endif
 }
 
-static void handleClick() { selectNextAnimation(); };
+bool firstBackgroundLoop = true;
+
+TaskHandle_t backgroundTask;
+
+void backgroundLoop(void *parameter) {
+  while (true) {
+#ifdef ENABLE_BENCHMARK_BACKGROUND
+    unsigned long benchmark = millis();
+#endif
+
+    bootButton.tick();
+
+#ifdef ENABLE_OTA
+    handleOTA();
+#endif
+
+    if (firstBackgroundLoop) {
+#ifdef ENABLE_SCREEN
+      u8g2.begin();
+      updateDisplay();
+#endif
+      firstBackgroundLoop = false;
+    }
+
+    if (numberOfAutoPulseTypes > 1 &&
+        millis() - stateManager.lastAnimationChange >= animationChangeTime) {
+      stateManager.selectNextAnimation();
+      updateDisplay();
+    }
+
+#ifdef ENABLE_BENCHMARK_BACKGROUND
+    Serial.print("Background benchmark: ");
+    Serial.println(millis() - benchmark);
+#endif
+  }
+}
 
 void setup() {
   Serial.begin(115200);
 
   bootButton.attachClick(handleClick);
-
-#ifdef ENABLE_SCREEN
-  u8g2.begin();
-#endif
 
   while (!Serial) {
     ;  // wait for serial port to connect. Needed for native USB port only
@@ -146,11 +148,17 @@ void setup() {
   Serial.println("*** LET'S GOOOOO ***");
 
 #ifdef ENABLE_LEDS
-  for (int i = 0; i < 4; i++) {
-    strips[i].begin();
-    strips[i].show();
-  }
+  FastLED.addLeds<DOTSTAR, 5, 18, BGR>(leds, 0, lengths[0]);
+  FastLED.addLeds<DOTSTAR, 19, 26, BGR>(leds, lengths[0], lengths[1]);
+  FastLED.addLeds<DOTSTAR, 25, 33, BGR>(leds, lengths[0] + lengths[1],
+                                        lengths[2]);
+  FastLED.addLeds<DOTSTAR, 32, 23, BGR>(
+      leds, lengths[0] + lengths[1] + lengths[2], lengths[3]);
+  FastLED.clear();
 #endif
+
+  xTaskCreatePinnedToCore(backgroundLoop, "backgroundLoop", 10000, NULL, 1,
+                          &backgroundTask, 0);  // Core 0
 }
 
 void loop() {
@@ -158,52 +166,22 @@ void loop() {
   unsigned long benchmark = millis();
 #endif
 
-  bootButton.tick();
-
-#ifdef ENABLE_OTA
-  handleOTA();
-#endif
-
 #ifdef ENABLE_LEDS
   // Fade all dots to create trails
-  for (int strip = 0; strip < 40; strip++) {
-    for (int led = 0; led < 14; led++) {
-      for (int i = 0; i < 3; i++) {
-        ledColors[strip][led][i] *= decay;
-      }
-    }
-  }
+  fadeToBlackBy(leds, STRIP_COUNT * STRIP_LED_COUNT, 2);
 
   for (int i = 0; i < numberOfRipples; i++) {
-    ripples[i].advance(ledColors);
+    ripples[i].advance(leds);
   }
 
-  // ~1ms of loop time here
-  for (int segment = 0; segment < 40; segment++) {
-    for (int fromBottom = 0; fromBottom < 14; fromBottom++) {
-      int strip = ledAssignments[segment][0];
-      int led = round(fmap(fromBottom, 0, 13, ledAssignments[segment][2],
-                           ledAssignments[segment][1]));
-      strips[strip].setPixelColor(led, ledColors[segment][fromBottom][0],
-                                  ledColors[segment][fromBottom][1],
-                                  ledColors[segment][fromBottom][2]);
-    }
-  }
+  FastLED.setBrightness(stateManager.brightness);
+  FastLED.show();
 
-  for (int i = 0; i < 4; i++) strips[i].show();
-#endif
+  if (millis() - lastRandomPulse >= randomPulseTime) {
+    CHSV baseColor = CHSV((lastHueValue + 60) % 255, 255, 255);
+    lastHueValue = baseColor.h;
 
-  // Negligable performance impact
-  if (numberOfAutoPulseTypes > 1 &&
-      millis() - lastAutoPulseChange >= autoPulseChangeTime) {
-    selectNextAnimation();
-  }
-
-#ifdef ENABLE_LEDS
-  if (numberOfAutoPulseTypes && millis() - lastRandomPulse >= randomPulseTime) {
-    unsigned int baseColor = random(0xFFFF);
-
-    switch (currentAutoPulseType) {
+    switch (stateManager.animation) {
       case RandomPulses: {
         int node = 0;
         bool foundStartingNode = false;
@@ -226,10 +204,8 @@ void loop() {
                  rippleIndex++) {
               if (ripples[rippleIndex].state == dead) {
                 ripples[rippleIndex].start(
-                    node, direction,
-                    // strip0.ColorHSV(baseColor + (0xFFFF / 6) * i, 255, 255),
-                    strip0.ColorHSV(baseColor, 255, 255),
-                    float(random(100)) / 100.0 * .2 + .5, 3000, feisty);
+                    node, direction, baseColor,
+                    float(random8(100)) / 100.0 * .1 + .3, 3000, feisty);
 
                 break;
               }
@@ -240,24 +216,21 @@ void loop() {
       }
 
       case CubePulses: {
-        int node = cubeNodes[random(numberOfCubeNodes)];
+        int node = cubeNodes[random8(numberOfCubeNodes)];
 
         while (node == lastAutoPulseNode)
-          node = cubeNodes[random(numberOfCubeNodes)];
+          node = cubeNodes[random8(numberOfCubeNodes)];
 
         lastAutoPulseNode = node;
 
         RippleBehavior behavior =
-            random(2) ? alwaysTurnsLeft : alwaysTurnsRight;
+            random8(2) ? alwaysTurnsLeft : alwaysTurnsRight;
 
         for (int i = 0; i < 6; i++) {
           if (nodeConnections[node][i] >= 0) {
             for (int j = 0; j < numberOfRipples; j++) {
               if (ripples[j].state == dead) {
-                ripples[j].start(
-                    node, i,
-                    // strip0.ColorHSV(baseColor + (0xFFFF / 6) * i, 255, 255),
-                    strip0.ColorHSV(baseColor, 255, 255), .5, 2000, behavior);
+                ripples[j].start(node, i, baseColor, .35, 2000, behavior);
 
                 break;
               }
@@ -269,7 +242,7 @@ void loop() {
 
       case StarburstPulses: {
         RippleBehavior behavior =
-            random(2) ? alwaysTurnsLeft : alwaysTurnsRight;
+            random8(2) ? alwaysTurnsLeft : alwaysTurnsRight;
 
         lastAutoPulseNode = starburstNode;
 
@@ -278,8 +251,8 @@ void loop() {
             if (ripples[j].state == dead) {
               ripples[j].start(
                   starburstNode, i,
-                  strip0.ColorHSV(baseColor + (0xFFFF / 6) * i, 255, 255), .7,
-                  1800, behavior);
+                  CHSV(((255 / 6) * i + baseColor.h) % 255, 255, 255), .4, 1800,
+                  behavior);
 
               break;
             }
