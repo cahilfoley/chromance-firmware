@@ -36,6 +36,18 @@ class Strip {
   int getLEDIndex(int stripIndex) {
     return map(stripIndex, 0, 13, stripEndLED, stripStartLED);
   }
+
+  /** Merge the provided colour into the target LED weighted by the provided
+   * proportion */
+  void applyColorToLED(CRGB ledColors[TOTAL_LEDS], int led, CRGB color,
+                       float proportion) {
+    int ledIndex = getLEDIndex(led);
+    CRGB currentColour = ledColors[ledIndex];
+
+    ledColors[ledIndex].setRGB(qadd8(currentColour.r, color.r * proportion),
+                               qadd8(currentColour.g, color.g * proportion),
+                               qadd8(currentColour.b, color.b * proportion));
+  }
 };
 
 class Node {

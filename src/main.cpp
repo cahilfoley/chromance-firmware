@@ -62,7 +62,7 @@ Ripple ripples[numberOfRipples] = {
 };
 
 unsigned long lastRandomPulse;
-byte lastAutoPulseNode = 255;
+Node *lastAutoPulseNode;
 
 #endif
 
@@ -217,14 +217,16 @@ void loop() {
 
     switch (stateManager.animation) {
       case RandomPulses: {
-        int node = 0;
+        int nodeIndex = 0;
+        auto node = &graph.nodes[nodeIndex];
         bool foundStartingNode = false;
         while (!foundStartingNode) {
-          node = random8(25);
+          nodeIndex = random8(25);
+          node = &graph.nodes[nodeIndex];
           foundStartingNode = true;
           for (int i = 0; i < numberOfBorderNodes; i++) {
             // Don't fire a pulse on one of the outer nodes - it looks boring
-            if (node == borderNodes[i]) foundStartingNode = false;
+            if (node->index == borderNodes[i]) foundStartingNode = false;
           }
 
           if (node == lastAutoPulseNode) foundStartingNode = false;
@@ -233,7 +235,7 @@ void loop() {
         lastAutoPulseNode = node;
 
         for (int direction = 0; direction < 6; direction++) {
-          if (nodeConnections[node][direction] >= 0) {
+          if (node->strips[direction] != nullptr) {
             for (int rippleIndex = 0; rippleIndex < numberOfRipples;
                  rippleIndex++) {
               if (ripples[rippleIndex].state == dead) {
@@ -250,10 +252,11 @@ void loop() {
       }
 
       case CubePulses: {
-        int node = cubeNodes[random8(numberOfCubeNodes)];
+        auto node = &graph.nodes[cubeNodes[random8(numberOfCubeNodes)]];
 
-        while (node == lastAutoPulseNode)
-          node = cubeNodes[random8(numberOfCubeNodes)];
+        while (node == lastAutoPulseNode) {
+          node = &graph.nodes[cubeNodes[random8(numberOfCubeNodes)]];
+        }
 
         lastAutoPulseNode = node;
 
@@ -261,7 +264,7 @@ void loop() {
             random8(2) ? alwaysTurnsLeft : alwaysTurnsRight;
 
         for (int i = 0; i < 6; i++) {
-          if (nodeConnections[node][i] >= 0) {
+          if (node->strips[i] != nullptr) {
             for (int j = 0; j < numberOfRipples; j++) {
               if (ripples[j].state == dead) {
                 ripples[j].start(node, i, baseColor, .35, 2000, behavior);
@@ -278,13 +281,13 @@ void loop() {
         RippleBehavior behavior =
             random8(2) ? alwaysTurnsLeft : alwaysTurnsRight;
 
-        lastAutoPulseNode = starburstNode;
+        lastAutoPulseNode = &graph.nodes[starburstNode];
 
         for (int i = 0; i < 6; i++) {
           for (int j = 0; j < numberOfRipples; j++) {
             if (ripples[j].state == dead) {
               ripples[j].start(
-                  starburstNode, i,
+                  lastAutoPulseNode, i,
                   CHSV(((255 / 6) * i + baseColor.h) % 255, 255, 255), .4, 1800,
                   behavior);
 

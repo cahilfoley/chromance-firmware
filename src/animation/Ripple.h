@@ -42,19 +42,13 @@ class Ripple {
   rippleState state = dead;
   CRGB color;
 
-  /*
-     If within a node: 0 is node, 1 is direction
-     If traveling, 0 is segment, 1 is LED position from bottom
-  */
-  int position[2];
-
   Strip *strip;
   Node *node;
-  byte ledIndex;
+  int ledIndex;
   byte direction;
 
   // Place the Ripple in a node
-  void start(byte node, byte direction, CRGB _color, float _speed,
+  void start(Node *node, byte direction, CRGB _color, float _speed,
              unsigned long _lifespan, RippleBehavior _behavior) {
     color = _color;
     speed = _speed;
@@ -66,17 +60,11 @@ class Ripple {
     pressure = 0;
     state = withinNode;
 
-    position[0] = node;
-    position[1] = direction;
+    ledIndex = 0;
+    this->node = node;
+    this->direction = direction;
 
     justStarted = true;
-
-    // Serial.print("Ripple ");
-    // Serial.print(rippleID);
-    // Serial.print(" starting at node ");
-    // Serial.print(position[0]);
-    // Serial.print(" direction ");
-    // Serial.println(position[1]);
   }
 
   void advance(CRGB ledColors[TOTAL_LEDS]) {
@@ -117,13 +105,14 @@ class Ripple {
 
             int newDirection = -1;
 
-            int sharpLeft = (position[1] + 1) % 6;
-            int wideLeft = (position[1] + 2) % 6;
-            int forward = (position[1] + 3) % 6;
-            int wideRight = (position[1] + 4) % 6;
-            int sharpRight = (position[1] + 5) % 6;
+            int sharpLeft = (direction + 1) % 6;
+            int wideLeft = (direction + 2) % 6;
+            int forward = (direction + 3) % 6;
+            int wideRight = (direction + 4) % 6;
+            int sharpRight = (direction + 5) % 6;
 
-            if (behavior <= 2) {  // Semi-random aggressive turn mode
+            if (behavior <= 2) {
+              // Semi-random aggressive turn mode
               // The more aggressive a ripple, the tighter turns it wants to
               // make. If there aren't any segments it can turn to, we need to
               // adjust its behavior.
@@ -131,9 +120,9 @@ class Ripple {
 
               while (newDirection < 0) {
                 if (anger == 0) {
-                  int forwardConnection = nodeConnections[position[0]][forward];
+                  auto forwardConnection = node->strips[forward];
 
-                  if (forwardConnection < 0) {
+                  if (forwardConnection == nullptr) {
                     // We can't go straight ahead - we need to take a more
                     // aggressive angle
 #ifdef DEBUG_ADVANCEMENT
@@ -150,20 +139,20 @@ class Ripple {
                 }
 
                 if (anger == 1) {
-                  int leftConnection = nodeConnections[position[0]][wideLeft];
-                  int rightConnection = nodeConnections[position[0]][wideRight];
+                  auto leftConnection = node->strips[wideLeft];
+                  auto rightConnection = node->strips[wideRight];
 
-                  if (leftConnection >= 0 && rightConnection >= 0) {
+                  if (leftConnection != nullptr && rightConnection != nullptr) {
 #ifdef DEBUG_ADVANCEMENT
                     Serial.println("  Turning left or right at random");
 #endif
                     newDirection = random8(2) ? wideLeft : wideRight;
-                  } else if (leftConnection >= 0) {
+                  } else if (leftConnection != nullptr) {
 #ifdef DEBUG_ADVANCEMENT
                     Serial.println("  Can only turn left");
 #endif
                     newDirection = wideLeft;
-                  } else if (rightConnection >= 0) {
+                  } else if (rightConnection != nullptr) {
 #ifdef DEBUG_ADVANCEMENT
                     Serial.println("  Can only turn right");
 #endif
@@ -173,27 +162,26 @@ class Ripple {
                     Serial.println(
                         "  Can't make wide turn - picking more agr. path");
 #endif
-                    anger++;  // Can't take shallow turn - must become more
-                              // aggressive
+                    // Can't take shallow turn - must become more aggressive
+                    anger++;
                   }
                 }
 
                 if (anger == 2) {
-                  int leftConnection = nodeConnections[position[0]][sharpLeft];
-                  int rightConnection =
-                      nodeConnections[position[0]][sharpRight];
+                  auto leftConnection = node->strips[sharpLeft];
+                  auto rightConnection = node->strips[sharpRight];
 
-                  if (leftConnection >= 0 && rightConnection >= 0) {
+                  if (leftConnection != nullptr && rightConnection != nullptr) {
 #ifdef DEBUG_ADVANCEMENT
                     Serial.println("  Turning left or right at random");
 #endif
                     newDirection = random8(2) ? sharpLeft : sharpRight;
-                  } else if (leftConnection >= 0) {
+                  } else if (leftConnection != nullptr) {
 #ifdef DEBUG_ADVANCEMENT
                     Serial.println("  Can only turn left");
 #endif
                     newDirection = sharpLeft;
-                  } else if (rightConnection >= 0) {
+                  } else if (rightConnection != nullptr) {
 #ifdef DEBUG_ADVANCEMENT
                     Serial.println("  Can only turn right");
 #endif
@@ -203,8 +191,8 @@ class Ripple {
                     Serial.println(
                         "  Can't make tight turn - picking less agr. path");
 #endif
-                    anger--;  // Can't take tight turn - must become less
-                              // aggressive
+                    // Can't take tight turn - must become less aggressive
+                    anger--;
                   }
                 }
 
@@ -214,9 +202,9 @@ class Ripple {
               }
             } else if (behavior == alwaysTurnsRight) {
               for (int i = 1; i < 6; i++) {
-                int possibleDirection = (position[1] + i) % 6;
+                int possibleDirection = (direction + i) % 6;
 
-                if (nodeConnections[position[0]][possibleDirection] >= 0) {
+                if (node->strips[possibleDirection] != nullptr) {
                   newDirection = possibleDirection;
                   break;
                 }
@@ -227,9 +215,9 @@ class Ripple {
 #endif
             } else if (behavior == alwaysTurnsLeft) {
               for (int i = 5; i >= 1; i--) {
-                int possibleDirection = (position[1] + i) % 6;
+                int possibleDirection = (direction + i) % 6;
 
-                if (nodeConnections[position[0]][possibleDirection] >= 0) {
+                if (node->strips[possibleDirection] != nullptr) {
                   newDirection = possibleDirection;
                   break;
                 }
@@ -242,109 +230,92 @@ class Ripple {
 
 #ifdef DEBUG_ADVANCEMENT
             Serial.print("  Leaving node ");
-            Serial.print(position[0]);
+            Serial.print(node->index);
             Serial.print(" in direction ");
             Serial.println(newDirection);
 #endif
 
-            position[1] = newDirection;
+            direction = newDirection;
           }
 
-          position[0] =
-              nodeConnections[position[0]]
-                             [position[1]];  // Look up which segment we're on
+          strip = node->strips[direction];
 
 #ifdef DEBUG_ADVANCEMENT
           Serial.print("  and entering segment ");
-          Serial.println(position[0]);
+          Serial.println(strips->index);
 #endif
 
-          if (position[1] == 5 || position[1] == 0 ||
-              position[1] == 1) {  // Top half of the node
+          if (direction == 5 || direction == 0 ||
+              direction == 1) {  // Top half of the node
 #ifdef DEBUG_ADVANCEMENT
             Serial.println("  (starting at bottom)");
 #endif
             state = travelingUpwards;
-            position[1] = 0;  // Starting at bottom of segment
+            ledIndex = 0;  // Starting at bottom of segment
           } else {
 #ifdef DEBUG_ADVANCEMENT
             Serial.println("  (starting at top)");
 #endif
             state = travelingDownwards;
-            position[1] =
-                STRIP_LED_COUNT - 1;  // Starting at top of 14-LED-long strip
+            ledIndex = strip->length - 1;  // Starting at top
           }
           break;
         }
 
         case travelingUpwards: {
-          position[1]++;
+          ledIndex++;
 
-          if (position[1] >= STRIP_LED_COUNT) {
+          if (ledIndex >= strip->length) {
             // We've reached the top!
 #ifdef DEBUG_ADVANCEMENT
             Serial.print("  Reached top of seg. ");
-            Serial.println(position[0]);
+            Serial.println(strip->index);
 #endif
             // Enter the new node.
-            int segment = position[0];
-            position[0] = segmentConnections[position[0]][0];
-            for (int i = 0; i < 6; i++) {
-              // Figure out from which direction the ripple is entering the
-              // node. Allows us to exit in an appropriately aggressive
-              // direction.
-              int incomingConnection = nodeConnections[position[0]][i];
-              if (incomingConnection == segment) position[1] = i;
-            }
+            node = strip->topNode;
+            direction = (direction + 3) % 6;  // Reverse direction
 #ifdef DEBUG_ADVANCEMENT
             Serial.print("  Entering node ");
-            Serial.print(position[0]);
+            Serial.print(node->index);
             Serial.print(" from direction ");
-            Serial.println(position[1]);
+            Serial.println(direction);
 #endif
             state = withinNode;
           } else {
 #ifdef DEBUG_ADVANCEMENT
             Serial.print("  Moved up to seg. ");
-            Serial.print(position[0]);
+            Serial.print(strip->index);
             Serial.print(" LED ");
-            Serial.println(position[1]);
+            Serial.println(ledIndex);
 #endif
           }
           break;
         }
 
         case travelingDownwards: {
-          position[1]--;
-          if (position[1] < 0) {
+          ledIndex--;
+          if (ledIndex < 0) {
             // We've reached the bottom!
 #ifdef DEBUG_ADVANCEMENT
             Serial.print("  Reached bottom of seg. ");
-            Serial.println(position[0]);
+            Serial.println(strip->index);
 #endif
             // Enter the new node.
-            int segment = position[0];
-            position[0] = segmentConnections[position[0]][1];
-            for (int i = 0; i < 6; i++) {
-              // Figure out from which direction the ripple is entering the
-              // node. Allows us to exit in an appropriately aggressive
-              // direction.
-              int incomingConnection = nodeConnections[position[0]][i];
-              if (incomingConnection == segment) position[1] = i;
-            }
+            node = strip->bottomNode;
+            direction = (direction + 3) % 6;  // Reverse direction
 #ifdef DEBUG_ADVANCEMENT
             Serial.print("  Entering node ");
-            Serial.print(position[0]);
+            Serial.print(node->index);
             Serial.print(" from direction ");
-            Serial.println(position[1]);
+            Serial.println(direction);
 #endif
             state = withinNode;
           } else {
 #ifdef DEBUG_ADVANCEMENT
             Serial.print("  Moved down to seg. ");
-            Serial.print(position[0]);
+            Serial.print(strip->index);
             Serial.print(" LED ");
-            Serial.println(position[1]);
+            Serial.println(ledIndex);
 #endif
           }
           break;
@@ -375,7 +346,7 @@ class Ripple {
       Serial.println("  Lifespan is up! Ripple is dead.");
 #endif
       state = dead;
-      position[0] = position[1] = pressure = age = 0;
+      direction = pressure = age = 0;
     }
 
     lastRender = millis();
@@ -395,49 +366,24 @@ class Ripple {
 
   byte rippleID;  // Used to identify this ripple in debug output
 
-  void applyColorToLED(CRGB ledColors[TOTAL_LEDS], int led, CRGB color,
-                       float proportion) {
-    CRGB currentColour = ledColors[led];
-
-    ledColors[led].setRGB(qadd8(currentColour.r, color.r * proportion),
-                          qadd8(currentColour.g, color.g * proportion),
-                          qadd8(currentColour.b, color.b * proportion));
-  }
-
   void renderLED(CRGB ledColors[TOTAL_LEDS], unsigned long age) {
-    auto strip = graph.strips[position[0]];
-    auto led = strip.getLEDIndex(position[1]);
-
-#ifdef DEBUG_RENDERING
-    Serial.print("Position: ");
-    Serial.print(position[0]);
-    Serial.print(", ");
-    Serial.print(position[1]);
-    Serial.print(" -> ");
-    Serial.print("Rendering ripple position (stripIndex: ");
-    Serial.print(stripIndex);
-    Serial.print(", stripOffset: ");
-    Serial.print(stripOffset);
-    Serial.print(", ledIndex: ");
-    Serial.println(ledIndex);
-#endif
-
     float ageBasedProportion = fmap(float(age), 0.0, float(lifespan), 1.0, 0.0);
-    applyColorToLED(ledColors, led, color, ageBasedProportion);
+    strip->applyColorToLED(ledColors, ledIndex, color, ageBasedProportion);
 
-    int nextLED = led + 1;
-    if (pressure < 1 && nextLED % STRIP_LED_COUNT != 0) {
+    int nextLED = ledIndex + state == travelingUpwards ? 1 : -1;
+    if (pressure < 1 && nextLED >= 0 && nextLED < strip->length) {
       // If we are partially into the next LED we can partially render it
-      applyColorToLED(ledColors, nextLED, color, pressure * ageBasedProportion);
+      strip->applyColorToLED(ledColors, nextLED, color,
+                             pressure * ageBasedProportion);
     }
 
 #ifdef DEBUG_RENDERING
     Serial.print("Rendering ripple position (");
-    Serial.print(position[0]);
+    Serial.print(strip->index);
     Serial.print(',');
-    Serial.print(position[1]);
+    Serial.print(ledIndex);
     Serial.print(") at Strip ");
-    Serial.print(strip);
+    Serial.print(strip->index);
     Serial.print(", LED ");
     Serial.print(led);
     Serial.print(", color 0x");
