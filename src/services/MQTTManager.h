@@ -7,30 +7,33 @@
 #include "secrets.h"
 
 WiFiClient wifiClient;
-MqttClient mqttClient(wifiClient);
 
 class MQTTManager {
  public:
+  MqttClient client = MqttClient(wifiClient);
+
   bool setup() {
-    mqttClient.setId("chromance");
-    mqttClient.setUsernamePassword(mqttUsername, mqttPassword);
+    client.setId("chromance");
+    client.setUsernamePassword(mqttUsername, mqttPassword);
 
     Serial.print("Attempting to connect to the MQTT broker: ");
     Serial.println(mqttBroker);
 
-    bool connected = mqttClient.connect(mqttBroker, mqttPort);
+    bool connected = client.connect(mqttBroker, mqttPort);
 
     if (connected) {
       Serial.print("MQTT connection was successful");
     } else {
       Serial.print("MQTT connection failed! Error code = ");
-      Serial.println(mqttClient.connectError());
+      Serial.println(client.connectError());
     }
 
     return connected;
   }
 
-  void poll() { mqttClient.poll(); }
+  void poll() { client.poll(); }
 };
+
+MQTTManager mqttManager;
 
 #endif

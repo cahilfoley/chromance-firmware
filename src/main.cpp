@@ -5,6 +5,7 @@
 #include "config.h"
 
 #define ENABLE_LEDS
+#define ENABLE_TIME_MANAGER
 // #define ENABLE_OTA
 // #define ENABLE_MQTT
 // #define ENABLE_SCREEN
@@ -12,8 +13,8 @@
 // #define ENABLE_BENCHMARK_BACKGROUND
 // #define WAIT_FOR_SERIAL
 
-#if defined(ENABLE_OTA) || defined(ENABLE_MQTT)
-#include "WiFiManager.h"
+#if defined(ENABLE_TIME_MANAGER) || defined(ENABLE_OTA) || defined(ENABLE_MQTT)
+#include "services/WiFiManager.h"
 #endif
 
 #ifdef ENABLE_LEDS
@@ -27,12 +28,16 @@
 #include <Wire.h>
 #endif
 
+#ifdef ENABLE_TIME_MANAGER
+#include "services/TimeManager.h"
+#endif
+
 #ifdef ENABLE_OTA
-#include "OTAManager.h"
+#include "services/OTAManager.h"
 #endif
 
 #ifdef ENABLE_MQTT
-#include "MQTTManager.h"
+#include "services/MQTTManager.h"
 #endif
 
 OneButton bootButton = OneButton(0, true, true);
@@ -76,7 +81,7 @@ static void updateDisplay() {
   char brightnessBuffer[50];
   sprintf(brightnessBuffer, "B: %d", stateManager.brightness);
   u8g2.drawStr(5, 30, brightnessBuffer);
-#if defined(ENABLE_OTA) || defined(ENABLE_MQTT)
+#if defined(ENABLE_TIME_MANAGER) || defined(ENABLE_OTA) || defined(ENABLE_MQTT)
   char wifiBuffer[50];
   sprintf(wifiBuffer, "W: %s",
           WiFiConnection.isConnected() ? "Connected" : "Disconnected");
@@ -95,6 +100,9 @@ bool firstBackgroundLoop = true;
 
 TaskHandle_t backgroundTask;
 
+const unsigned long timeCheckInterval = 60000;
+unsigned long nextTimeCheck = 0;
+
 void backgroundLoop(void *parameter) {
   while (true) {
 #ifdef ENABLE_BENCHMARK_BACKGROUND
@@ -102,6 +110,15 @@ void backgroundLoop(void *parameter) {
 #endif
 
     bootButton.tick();
+
+#ifdef ENABLE_TIME_MANAGER
+    unsigned long now = millis();
+    if (now >= nextTimeCheck) {
+      auto time = timeManager.getCurrentLocalTime();
+      stateManager.updateBrightnessFromTime(time);
+      nextTimeCheck = now + timeCheckInterval;
+    }
+#endif
 
 #ifdef ENABLE_OTA
     otaManager.handle();
@@ -114,8 +131,7 @@ void backgroundLoop(void *parameter) {
       firstBackgroundLoop = false;
     }
 
-    if (numberOfAutoPulseTypes > 1 &&
-        millis() - stateManager.lastAnimationChange >= animationChangeTime) {
+    if (millis() - stateManager.lastAnimationChange >= animationChangeTime) {
       stateManager.selectNextAnimation();
       updateDisplay();
     }
@@ -144,8 +160,12 @@ void setup() {
   }
 #endif
 
-#if defined(ENABLE_OTA) || defined(ENABLE_MQTT)
+#if defined(ENABLE_TIME_MANAGER) || defined(ENABLE_OTA) || defined(ENABLE_MQTT)
   wifiManager.setup();
+#endif
+
+#ifdef ENABLE_TIME_MANAGER
+  timeManager.setup();
 #endif
 
 #ifdef ENABLE_OTA
@@ -159,12 +179,14 @@ void setup() {
   Serial.println("*** LET'S GOOOOO ***");
 
 #ifdef ENABLE_LEDS
-  FastLED.addLeds<DOTSTAR, 5, 18, BGR>(leds, 0, lengths[0]);
-  FastLED.addLeds<DOTSTAR, 19, 26, BGR>(leds, lengths[0], lengths[1]);
-  FastLED.addLeds<DOTSTAR, 25, 33, BGR>(leds, lengths[0] + lengths[1],
-                                        lengths[2]);
-  FastLED.addLeds<DOTSTAR, 32, 23, BGR>(
-      leds, lengths[0] + lengths[1] + lengths[2], lengths[3]);
+  FastLED.addLeds<DOTSTAR, 5, 18, BGR>(leds, channelOffsets[0], lengths[0])
+      .setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<DOTSTAR, 19, 26, BGR>(leds, channelOffsets[1], lengths[1])
+      .setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<DOTSTAR, 25, 33, BGR>(leds, channelOffsets[2], lengths[2])
+      .setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<DOTSTAR, 32, 23, BGR>(leds, channelOffsets[3], lengths[3])
+      .setCorrection(TypicalLEDStrip);
   FastLED.clear();
 #endif
 
@@ -179,7 +201,7 @@ void loop() {
 
 #ifdef ENABLE_LEDS
   // Fade all dots to create trails
-  fadeToBlackBy(leds, STRIP_COUNT * STRIP_LED_COUNT, 2);
+  fadeToBlackBy(leds, TOTAL_LEDS, 2);
 
   for (int i = 0; i < numberOfRipples; i++) {
     ripples[i].advance(leds);

@@ -1,5 +1,5 @@
-#ifndef EVENT_MANAGER
-#define EVENT_MANAGER
+#ifndef EventManager_h
+#define EventManager_h
 
 #include <algorithm>
 #include <map>

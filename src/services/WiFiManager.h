@@ -1,5 +1,5 @@
-#ifndef WIFI_MANAGER_H
-#define WIFI_MANAGER_H
+#ifndef WiFiManager_h
+#define WiFiManager_h
 
 #include <WiFi.h>
 

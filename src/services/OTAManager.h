@@ -50,6 +50,4 @@ class OTAManager {
   void handle() { ArduinoOTA.handle(); }
 };
 
-OTAManager otaManager;
-
 #endif
