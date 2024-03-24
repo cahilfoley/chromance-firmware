@@ -157,7 +157,7 @@ class Ripple {
 #ifdef DEBUG_ADVANCEMENT
                     Serial.println("  Turning left or right at random");
 #endif
-                    newDirection = random(2) ? wideLeft : wideRight;
+                    newDirection = random8(2) ? wideLeft : wideRight;
                   } else if (leftConnection >= 0) {
 #ifdef DEBUG_ADVANCEMENT
                     Serial.println("  Can only turn left");
@@ -187,7 +187,7 @@ class Ripple {
 #ifdef DEBUG_ADVANCEMENT
                     Serial.println("  Turning left or right at random");
 #endif
-                    newDirection = random(2) ? sharpLeft : sharpRight;
+                    newDirection = random8(2) ? sharpLeft : sharpRight;
                   } else if (leftConnection >= 0) {
 #ifdef DEBUG_ADVANCEMENT
                     Serial.println("  Can only turn left");
@@ -395,14 +395,18 @@ class Ripple {
 
   byte rippleID;  // Used to identify this ripple in debug output
 
-  void renderLED(CRGB ledColors[TOTAL_LEDS], unsigned long age) {
-    int stripIndex = position[0];
-    int channel = ledAssignments[stripIndex][0];
-    int channelLEDOffset = ledAssignments[stripIndex][1];
-    int stripStart = channelOffsets[channel] + ledAssignments[stripIndex][1];
-    int stripEnd = channelOffsets[channel] + ledAssignments[stripIndex][2];
+  void applyColorToLED(CRGB ledColors[TOTAL_LEDS], int led, CRGB color,
+                       float proportion) {
+    CRGB currentColour = ledColors[led];
 
-    int led = map(position[1], 0, 13, stripEnd, stripStart);
+    ledColors[led].setRGB(qadd8(currentColour.r, color.r * proportion),
+                          qadd8(currentColour.g, color.g * proportion),
+                          qadd8(currentColour.b, color.b * proportion));
+  }
+
+  void renderLED(CRGB ledColors[TOTAL_LEDS], unsigned long age) {
+    auto strip = graph.strips[position[0]];
+    auto led = strip.getLEDIndex(position[1]);
 
 #ifdef DEBUG_RENDERING
     Serial.print("Position: ");
@@ -418,34 +422,13 @@ class Ripple {
     Serial.println(ledIndex);
 #endif
 
-    CRGB currentColour = ledColors[led];
-
-    ledColors[led].setRGB(
-        byte(min(255, max(0, int(fmap(float(age), 0.0, float(lifespan), color.r,
-                                      0.0)) +
-                                 currentColour.r))),
-        byte(min(255, max(0, int(fmap(float(age), 0.0, float(lifespan), color.g,
-                                      0.0)) +
-                                 currentColour.g))),
-        byte(min(255, max(0, int(fmap(float(age), 0.0, float(lifespan), color.b,
-                                      0.0)) +
-                                 currentColour.b))));
+    float ageBasedProportion = fmap(float(age), 0.0, float(lifespan), 1.0, 0.0);
+    applyColorToLED(ledColors, led, color, ageBasedProportion);
 
     int nextLED = led + 1;
     if (pressure < 1 && nextLED % STRIP_LED_COUNT != 0) {
-      CRGB nextCurrentColour = ledColors[nextLED];
-
       // If we are partially into the next LED we can partially render it
-      ledColors[nextLED].setRGB(
-          byte(min(255, max(0, int(fmap(float(age), 0.0, float(lifespan),
-                                        color.r * pressure, 0.0) +
-                                   nextCurrentColour.r)))),
-          byte(min(255, max(0, int(fmap(float(age), 0.0, float(lifespan),
-                                        color.g * pressure, 0.0) +
-                                   nextCurrentColour.g)))),
-          byte(min(255, max(0, int(fmap(float(age), 0.0, float(lifespan),
-                                        color.b * pressure, 0.0) +
-                                   nextCurrentColour.b)))));
+      applyColorToLED(ledColors, nextLED, color, pressure * ageBasedProportion);
     }
 
 #ifdef DEBUG_RENDERING

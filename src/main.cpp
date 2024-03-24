@@ -20,6 +20,7 @@
 #ifdef ENABLE_LEDS
 #include <FastLED.h>
 
+#include "animation/Graph.h"
 #include "animation/Ripple.h"
 #endif
 
@@ -219,7 +220,7 @@ void loop() {
         int node = 0;
         bool foundStartingNode = false;
         while (!foundStartingNode) {
-          node = random(25);
+          node = random8(25);
           foundStartingNode = true;
           for (int i = 0; i < numberOfBorderNodes; i++) {
             // Don't fire a pulse on one of the outer nodes - it looks boring
