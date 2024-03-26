@@ -25,16 +25,16 @@ class Strip {
   Strip(){};
   Strip(int _index) {
     index = _index;
-    channel = ledAssignments[index][0];
+    channel = stripConfigs[index].channelIndex;
     channelLength = lengths[channel];
     channelOffset = channelOffsets[channel];
-    stripStartLED = channelOffset + ledAssignments[index][1];
-    stripEndLED = channelOffset + ledAssignments[index][2];
+    stripStartLED = channelOffset + stripConfigs[index].topLEDIndex;
+    stripEndLED = channelOffset + stripConfigs[index].bottomLEDIndex;
   }
 
   /** Get the global LED index for a given index on the strip */
   int getLEDIndex(int stripIndex) {
-    return map(stripIndex, 0, 13, stripEndLED, stripStartLED);
+    return map(stripIndex, 0, length - 1, stripEndLED, stripStartLED);
   }
 
   /** Merge the provided colour into the target LED weighted by the provided
@@ -75,12 +75,10 @@ class Graph {
     }
 
     // Add all of the node references to each strip
-    for (int stripIndex = 0; stripIndex < STRIP_COUNT; stripIndex++) {
-      int topNodeIndex = segmentConnections[stripIndex][0];
-      int bottomNodeIndex = segmentConnections[stripIndex][1];
-
-      strips[stripIndex].topNode = &nodes[topNodeIndex];
-      strips[stripIndex].bottomNode = &nodes[bottomNodeIndex];
+    for (byte stripIndex = 0; stripIndex < STRIP_COUNT; stripIndex++) {
+      auto ledAssignment = stripConfigs[stripIndex];
+      strips[stripIndex].topNode = &nodes[ledAssignment.topNodeIndex];
+      strips[stripIndex].bottomNode = &nodes[ledAssignment.bottomNodeIndex];
     }
 
     // Add all of the strip references to each node

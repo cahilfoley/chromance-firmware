@@ -3,7 +3,6 @@
 
 #include "config.h"
 
-// I accidentally noted these down 1-indexed and I'm too tired to adjust them
 #define headof(S) ((S - 1) * 14)
 #define tailof(S) (headof(S) + 13)
 
@@ -37,48 +36,38 @@ int nodeConnections[25][6] = {
     {30, 35, 38, -1, -1, 34}, {32, 37, -1, -1, 39, 36},
     {-1, 39, -1, -1, -1, 38}};
 
-// First member: Node closer to ceiling
-// Second: Node closer to floor
-int segmentConnections[40][2] = {
-    {0, 3},   {0, 4},   {1, 4},   {1, 5},   {2, 5},   {2, 6},   {3, 7},
-    {4, 7},   {4, 8},   {5, 8},   {5, 9},   {6, 9},   {3, 10},  {7, 14},
-    {4, 11},  {8, 15},  {5, 12},  {9, 16},  {6, 13},  {10, 14}, {11, 14},
-    {11, 15}, {12, 15}, {12, 16}, {13, 16}, {14, 17}, {15, 17}, {15, 18},
-    {16, 18}, {14, 19}, {17, 22}, {15, 20}, {18, 23}, {16, 21}, {19, 22},
-    {20, 22}, {20, 23}, {21, 23}, {22, 24}, {23, 24}};
+struct StripConfig {
+  byte channelIndex;
+  byte topNodeIndex;
+  byte bottomNodeIndex;
+  uint16_t topLEDIndex;
+  uint16_t bottomLEDIndex;
+};
 
 // First member: Strip number
 // Second: LED index closer to ceiling
 // Third: LED index closer to floor
-int ledAssignments[40][3] = {
-    {2, headof(3), tailof(3)},   {2, tailof(2), headof(2)},
-    {1, headof(10), tailof(10)}, {1, tailof(9), headof(9)},
-    {1, headof(4), tailof(4)},   {1, tailof(3), headof(3)},
-
-    {2, tailof(6), headof(6)},   {3, tailof(11), headof(11)},
-    {1, headof(11), tailof(11)}, {1, tailof(8), headof(8)},
-    {1, headof(12), tailof(12)}, {0, tailof(11), headof(11)},
-
-    {2, headof(4), tailof(4)},   {3, tailof(10), headof(10)},
-    {2, tailof(1), headof(1)},   {1, tailof(7), headof(7)},
-    {1, headof(5), tailof(5)},   {0, tailof(10), headof(10)},
-    {1, tailof(2), headof(2)},
-
-    {2, headof(5), tailof(5)},   {3, tailof(4), headof(4)},
-    {3, headof(5), tailof(5)},   {0, headof(5), tailof(5)},
-    {0, tailof(4), headof(4)},   {1, tailof(1), headof(1)},
-
-    {3, tailof(9), headof(9)},   {0, headof(6), tailof(6)},
-    {1, tailof(6), headof(6)},   {0, tailof(9), headof(9)},
-
-    {3, tailof(3), headof(3)},   {3, tailof(8), headof(8)},
-    {3, headof(6), tailof(6)},   {0, tailof(8), headof(8)},
-    {0, tailof(3), headof(3)},
-
-    {3, tailof(2), headof(2)},   {3, headof(7), tailof(7)},
-    {0, headof(7), tailof(7)},   {0, tailof(2), headof(2)},
-
-    {3, tailof(1), headof(1)},   {0, tailof(1), headof(1)}};
+StripConfig stripConfigs[40] = {
+    {2, 0, 3, headof(3), tailof(3)},   {2, 0, 4, tailof(2), headof(2)},
+    {1, 1, 4, headof(10), tailof(10)}, {1, 1, 5, tailof(9), headof(9)},
+    {1, 2, 5, headof(4), tailof(4)},   {1, 2, 6, tailof(3), headof(3)},
+    {2, 3, 7, tailof(6), headof(6)},   {3, 4, 7, tailof(11), headof(11)},
+    {1, 4, 8, headof(11), tailof(11)}, {1, 5, 8, tailof(8), headof(8)},
+    {1, 5, 9, headof(12), tailof(12)}, {0, 6, 9, tailof(11), headof(11)},
+    {2, 3, 10, headof(4), tailof(4)},  {3, 7, 14, tailof(10), headof(10)},
+    {2, 4, 11, tailof(1), headof(1)},  {1, 8, 15, tailof(7), headof(7)},
+    {1, 5, 12, headof(5), tailof(5)},  {0, 9, 16, tailof(10), headof(10)},
+    {1, 6, 13, tailof(2), headof(2)},  {2, 10, 14, headof(5), tailof(5)},
+    {3, 11, 14, tailof(4), headof(4)}, {3, 11, 15, headof(5), tailof(5)},
+    {0, 12, 15, headof(5), tailof(5)}, {0, 12, 16, tailof(4), headof(4)},
+    {1, 13, 16, tailof(1), headof(1)}, {3, 14, 17, tailof(9), headof(9)},
+    {0, 15, 17, headof(6), tailof(6)}, {1, 15, 18, tailof(6), headof(6)},
+    {0, 16, 18, tailof(9), headof(9)}, {3, 14, 19, tailof(3), headof(3)},
+    {3, 17, 22, tailof(8), headof(8)}, {3, 15, 20, headof(6), tailof(6)},
+    {0, 18, 23, tailof(8), headof(8)}, {0, 16, 21, tailof(3), headof(3)},
+    {3, 19, 22, tailof(2), headof(2)}, {3, 20, 22, headof(7), tailof(7)},
+    {0, 20, 23, headof(7), tailof(7)}, {0, 21, 23, tailof(2), headof(2)},
+    {3, 22, 24, tailof(1), headof(1)}, {0, 23, 24, tailof(1), headof(1)}};
 
 // Border nodes are on the very edge of the network.
 // Ripples fired here don't look very impressive.
