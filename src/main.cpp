@@ -105,6 +105,8 @@ const unsigned long timeCheckInterval = 60000;
 unsigned long nextTimeCheck = 0;
 
 void backgroundLoop(void *parameter) {
+  bootButton.attachClick(handleClick);
+
   while (true) {
 #ifdef ENABLE_BENCHMARK_BACKGROUND
     unsigned long benchmark = millis();
@@ -148,8 +150,6 @@ void backgroundLoop(void *parameter) {
 
 void setup() {
   Serial.begin(115200);
-
-  bootButton.attachClick(handleClick);
 
 #ifdef ENABLE_LEDS
   FastLED.addLeds<DOTSTAR, 5, 18, BGR>(leds, channelOffsets[0], lengths[0])
