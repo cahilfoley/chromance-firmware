@@ -151,6 +151,18 @@ void setup() {
 
   bootButton.attachClick(handleClick);
 
+#ifdef ENABLE_LEDS
+  FastLED.addLeds<DOTSTAR, 5, 18, BGR>(leds, channelOffsets[0], lengths[0])
+      .setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<DOTSTAR, 19, 26, BGR>(leds, channelOffsets[1], lengths[1])
+      .setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<DOTSTAR, 25, 33, BGR>(leds, channelOffsets[2], lengths[2])
+      .setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<DOTSTAR, 32, 23, BGR>(leds, channelOffsets[3], lengths[3])
+      .setCorrection(TypicalLEDStrip);
+  FastLED.clear();
+#endif
+
 #ifdef ENABLE_SCREEN
   u8g2.begin();
 #endif
@@ -178,18 +190,6 @@ void setup() {
 #endif
 
   Serial.println("*** LET'S GOOOOO ***");
-
-#ifdef ENABLE_LEDS
-  FastLED.addLeds<DOTSTAR, 5, 18, BGR>(leds, channelOffsets[0], lengths[0])
-      .setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<DOTSTAR, 19, 26, BGR>(leds, channelOffsets[1], lengths[1])
-      .setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<DOTSTAR, 25, 33, BGR>(leds, channelOffsets[2], lengths[2])
-      .setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<DOTSTAR, 32, 23, BGR>(leds, channelOffsets[3], lengths[3])
-      .setCorrection(TypicalLEDStrip);
-  FastLED.clear();
-#endif
 
   xTaskCreatePinnedToCore(backgroundLoop, "backgroundLoop", 10000, NULL, 1,
                           &backgroundTask, 0);  // Core 0
