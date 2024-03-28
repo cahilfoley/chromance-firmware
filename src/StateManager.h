@@ -4,18 +4,20 @@
 #include <Arduino.h>
 #include <EventManager.h>
 
+#include <mutex>
+
 #include "config.h"
 #include "time.h"
 
 // Auto pulse configuration
 #define NUM_AUTO_PULSE_TYPES 4
-enum AutoPulseType {
+enum AnimationType {
   RandomPulses = 0,
   CubePulses = 1,
   StarburstPulses = 2,
   FlatRainbow = 3
 };
-const char* autoPulseNames[] = {
+const char* animationNames[] = {
     "Random Pulses",
     "Cube Pulses",
     "Starburst Pulses",
@@ -27,8 +29,9 @@ const char* autoPulseNames[] = {
 class StateManager : public EventManager {
  public:
   byte brightness;
-  AutoPulseType animation;
+  AnimationType animation;
   unsigned long lastAnimationChange;
+  std::mutex stateLock;
 
   StateManager() {
     brightness = 255;
@@ -37,22 +40,15 @@ class StateManager : public EventManager {
   }
 
   void selectNextAnimation() {
-    animation = (AutoPulseType)((animation + 1) % NUM_AUTO_PULSE_TYPES);
-    switch (animation) {
-      case RandomPulses:
-        if (!randomPulsesEnabled) return selectNextAnimation();
-      case CubePulses:
-        if (!cubePulsesEnabled) return selectNextAnimation();
-      case StarburstPulses:
-        if (!starburstPulsesEnabled) return selectNextAnimation();
-      case FlatRainbow:
-        if (!flatRainbowEnabled) return selectNextAnimation();
-    }
+    stateLock.lock();
+    findNextAnimation();
     lastAnimationChange = millis();
+    stateLock.unlock();
     emit("animationChange", animation);
   }
 
   void updateBrightnessFromTime(struct tm time) {
+    stateLock.lock();
     // If it's between 10pm and 6am, turn off the lights
     if (time.tm_hour >= 22 || time.tm_hour <= 6) {
       brightness = 0;
@@ -72,7 +68,23 @@ class StateManager : public EventManager {
       brightness = 255;
     }
 
+    stateLock.unlock();
     emit("brightnessChange", brightness);
+  }
+
+ private:
+  void findNextAnimation() {
+    animation = (AnimationType)((animation + 1) % NUM_AUTO_PULSE_TYPES);
+    switch (animation) {
+      case RandomPulses:
+        if (!randomPulsesEnabled) return findNextAnimation();
+      case CubePulses:
+        if (!cubePulsesEnabled) return findNextAnimation();
+      case StarburstPulses:
+        if (!starburstPulsesEnabled) return findNextAnimation();
+      case FlatRainbow:
+        if (!flatRainbowEnabled) return findNextAnimation();
+    }
   }
 };
 

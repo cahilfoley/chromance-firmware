@@ -87,7 +87,7 @@ static void updateDisplay() {
   u8g2.clearBuffer();
   u8g2.setFont(u8g2_font_ncenB08_tr);
   char animationBuffer[50];
-  sprintf(animationBuffer, "A: %s", autoPulseNames[stateManager.animation]);
+  sprintf(animationBuffer, "A: %s", animationNames[stateManager.animation]);
   u8g2.drawStr(5, 10, animationBuffer);
   char brightnessBuffer[50];
   sprintf(brightnessBuffer, "B: %d", stateManager.brightness);
@@ -213,8 +213,13 @@ void loop() {
 #endif
 
 #ifdef ENABLE_LEDS
+  stateManager.stateLock.lock();
+  AnimationType currentAnimation = stateManager.animation;
+  unsigned long lastAnimationChange = stateManager.lastAnimationChange;
+  stateManager.stateLock.unlock();
+
   // Fade all dots to create trails
-  if (stateManager.animation != FlatRainbow) {
+  if (currentAnimation != FlatRainbow) {
     fadeToBlackBy(leds, TOTAL_LEDS, 2);
   }
 
@@ -231,7 +236,7 @@ void loop() {
     CRGB baseColor = colors[lastColorIndex];
     lastColorIndex = (lastColorIndex + 1) % COLOR_COUNT;
 
-    switch (stateManager.animation) {
+    switch (currentAnimation) {
       case RandomPulses: {
         byte nodeIndex = 0;
         auto node = &graph.nodes[nodeIndex];
@@ -305,7 +310,7 @@ void loop() {
             if (ripples[j].state == dead) {
               ripples[j].start(
                   lastAutoPulseNode, i,
-                  CHSV(((255 / 6) * i + lastColorIndex) % 255, 255, 255), .4,
+                  CHSV(((255 / 6) * (lastColorIndex + i)) % 255, 255, 255), .4,
                   1800, behavior);
 
               break;
@@ -321,16 +326,15 @@ void loop() {
     lastRandomPulse = millis();
   }
 
-  switch (stateManager.animation) {
+  switch (currentAnimation) {
     case FlatRainbow: {
       unsigned long now = millis();
-      byte hue =
-          map(now, stateManager.lastAnimationChange,
-              stateManager.lastAnimationChange + animationChangeTime, 0, 255);
+      byte hue = map(now, lastAnimationChange,
+                     lastAnimationChange + animationChangeTime, 0, 255);
 
       // Fade the brightness in and out at the start and end of the animation
       byte value = 200;
-      int animationDuration = now - stateManager.lastAnimationChange;
+      int animationDuration = now - lastAnimationChange;
       if (animationDuration < 1000) {
         value = map(animationDuration, 0, 1000, 0, 200);
       } else if (animationDuration > animationChangeTime - 1000) {
