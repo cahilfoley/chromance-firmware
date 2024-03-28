@@ -60,12 +60,12 @@ class StateManager : public EventManager {
     // If it's after 6pm start fading the brightness down
     else if (time.tm_hour >= 18) {
       brightness =
-          map(time.tm_hour * 60 + time.tm_min, 18 * 60, 22 * 60, 255, 50);
+          map(time.tm_hour * 60 + time.tm_min, 18 * 60, 22 * 60, 255, 20);
     }
     // If it's before 8am start fading the brightness up
-    else if (time.tm_hour <= 8) {
+    else if (time.tm_hour < 8) {
       brightness =
-          map(time.tm_hour * 60 + time.tm_min, 6 * 60, 8 * 60, 50, 255);
+          map(time.tm_hour * 60 + time.tm_min, 6 * 60, 8 * 60, 20, 255);
     }
     // At other times the lights are on full
     else {
