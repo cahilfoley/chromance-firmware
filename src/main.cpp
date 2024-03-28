@@ -45,10 +45,20 @@ OneButton bootButton = OneButton(0, true, true);
 
 // Setup LEDs and animations
 #ifdef ENABLE_LEDS
-CRGB leds[STRIP_COUNT *
-          STRIP_LED_COUNT];  // LED buffer - each ripple writes to this
+#define COLOR_COUNT 6
+static CRGB colors[COLOR_COUNT] = {
+    CRGB(255, 0, 0),    // Red
+    CRGB(0, 255, 255),  // Cyan
+    CRGB(0, 255, 0),    // Green
+    CRGB(255, 255, 0),  // Yellow
+    CRGB(0, 0, 255),    // Blue
+    CRGB(255, 0, 255)   // Magenta
+};
 
-int lastHueValue = 0;
+CRGB leds[TOTAL_LEDS];  // LED buffer - each ripple writes to this
+
+byte lastHueValue = 0;
+byte lastColorIndex = 0;
 
 // These ripples are endlessly reused so we don't need to do any memory
 // management
@@ -218,19 +228,19 @@ void loop() {
   FastLED.show();
 
   if (millis() - lastRandomPulse >= randomPulseTime) {
-    CHSV baseColor = CHSV((lastHueValue + 60) % 255, 255, 255);
-    lastHueValue = baseColor.h;
+    CRGB baseColor = colors[lastColorIndex];
+    lastColorIndex = (lastColorIndex + 1) % COLOR_COUNT;
 
     switch (stateManager.animation) {
       case RandomPulses: {
-        int nodeIndex = 0;
+        byte nodeIndex = 0;
         auto node = &graph.nodes[nodeIndex];
         bool foundStartingNode = false;
         while (!foundStartingNode) {
           nodeIndex = random8(25);
           node = &graph.nodes[nodeIndex];
           foundStartingNode = true;
-          for (int i = 0; i < numberOfBorderNodes; i++) {
+          for (byte i = 0; i < numberOfBorderNodes; i++) {
             // Don't fire a pulse on one of the outer nodes - it looks boring
             if (node->index == borderNodes[i]) foundStartingNode = false;
           }
@@ -240,7 +250,7 @@ void loop() {
 
         lastAutoPulseNode = node;
 
-        for (int direction = 0; direction < 6; direction++) {
+        for (byte direction = 0; direction < 6; direction++) {
           if (node->strips[direction] != nullptr) {
             for (int rippleIndex = 0; rippleIndex < numberOfRipples;
                  rippleIndex++) {
@@ -254,6 +264,7 @@ void loop() {
             }
           }
         }
+
         break;
       }
 
@@ -294,8 +305,8 @@ void loop() {
             if (ripples[j].state == dead) {
               ripples[j].start(
                   lastAutoPulseNode, i,
-                  CHSV(((255 / 6) * i + baseColor.h) % 255, 255, 255), .4, 1800,
-                  behavior);
+                  CHSV(((255 / 6) * i + lastColorIndex) % 255, 255, 255), .4,
+                  1800, behavior);
 
               break;
             }
