@@ -22,6 +22,8 @@ const int animationChangeTime = 30000;
 const bool randomPulsesEnabled = true;  // Fire random pulses from random nodes
 const bool cubePulsesEnabled = true;    // Draw cubes at random nodes
 const bool starburstPulsesEnabled = true;  // Draw starbursts
+const bool flatRainbowEnabled = true;  // Draw a flat colour that cycles through
+                                       // rainbow colors across the whole system
 
 // NTP configuration //
 const char* ntpServer = "pool.ntp.org";

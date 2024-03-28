@@ -8,17 +8,21 @@
 #include "time.h"
 
 // Auto pulse configuration
-enum AutoPulseType { RandomPulses = 0, CubePulses = 1, StarburstPulses = 2 };
+#define NUM_AUTO_PULSE_TYPES 4
+enum AutoPulseType {
+  RandomPulses = 0,
+  CubePulses = 1,
+  StarburstPulses = 2,
+  FlatRainbow = 3
+};
 const char* autoPulseNames[] = {
     "Random Pulses",
     "Cube Pulses",
     "Starburst Pulses",
+    "System Pulse",
 };
 
 #define randomPulseTime 2000  // Fire a random pulse every (this many) ms
-
-byte numberOfAutoPulseTypes =
-    randomPulsesEnabled + cubePulsesEnabled + starburstPulsesEnabled;
 
 class StateManager : public EventManager {
  public:
@@ -28,12 +32,12 @@ class StateManager : public EventManager {
 
   StateManager() {
     brightness = 255;
-    animation = RandomPulses;
+    animation = FlatRainbow;
     lastAnimationChange = millis();
   }
 
   void selectNextAnimation() {
-    animation = (AutoPulseType)((animation + 1) % numberOfAutoPulseTypes);
+    animation = (AutoPulseType)((animation + 1) % NUM_AUTO_PULSE_TYPES);
     switch (animation) {
       case RandomPulses:
         if (!randomPulsesEnabled) return selectNextAnimation();
@@ -41,6 +45,8 @@ class StateManager : public EventManager {
         if (!cubePulsesEnabled) return selectNextAnimation();
       case StarburstPulses:
         if (!starburstPulsesEnabled) return selectNextAnimation();
+      case FlatRainbow:
+        if (!flatRainbowEnabled) return selectNextAnimation();
     }
     lastAnimationChange = millis();
     emit("animationChange", animation);

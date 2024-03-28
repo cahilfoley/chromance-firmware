@@ -193,6 +193,8 @@ void setup() {
 
   xTaskCreatePinnedToCore(backgroundLoop, "backgroundLoop", 10000, NULL, 1,
                           &backgroundTask, 0);  // Core 0
+
+  stateManager.lastAnimationChange = millis();
 }
 
 void loop() {
@@ -202,10 +204,14 @@ void loop() {
 
 #ifdef ENABLE_LEDS
   // Fade all dots to create trails
-  fadeToBlackBy(leds, TOTAL_LEDS, 2);
+  if (stateManager.animation != FlatRainbow) {
+    fadeToBlackBy(leds, TOTAL_LEDS, 2);
+  }
 
   for (int i = 0; i < numberOfRipples; i++) {
-    ripples[i].advance(leds);
+    if (ripples[i].state != dead) {
+      ripples[i].advance(leds);
+    }
   }
 
   FastLED.setBrightness(stateManager.brightness);
@@ -302,6 +308,31 @@ void loop() {
         break;
     }
     lastRandomPulse = millis();
+  }
+
+  switch (stateManager.animation) {
+    case FlatRainbow: {
+      unsigned long now = millis();
+      byte hue =
+          map(now, stateManager.lastAnimationChange,
+              stateManager.lastAnimationChange + animationChangeTime, 0, 255);
+
+      // Fade the brightness in and out at the start and end of the animation
+      byte value = 200;
+      int animationDuration = now - stateManager.lastAnimationChange;
+      if (animationDuration < 1000) {
+        value = map(animationDuration, 0, 1000, 0, 200);
+      } else if (animationDuration > animationChangeTime - 1000) {
+        value = map(animationDuration, animationChangeTime - 1000,
+                    animationChangeTime + 1, 200, 0);
+      }
+
+      for (int i = 0; i < TOTAL_LEDS; i++) {
+        leds[i] = CHSV(hue, 255, value);
+      }
+
+      break;
+    }
   }
 #endif
 
