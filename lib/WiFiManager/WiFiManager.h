@@ -22,6 +22,11 @@ class WiFiManager {
     Serial.println("Wifi successfully connected with IP address: ");
     Serial.println(WiFi.localIP());
   }
+
+  void disconnect() {
+    WiFi.disconnect();
+    WiFi.mode(WIFI_OFF);
+  }
 };
 
 WiFiManager wifiManager;

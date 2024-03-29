@@ -2,7 +2,7 @@
 #define config_h
 
 #define ENABLE_LEDS
-#define ENABLE_TIME_MANAGER
+#define ENABLE_TIME_MANAGER  // Connects to NTP server to get time and adjusts the brightness at night
 // #define ENABLE_OTA
 // #define ENABLE_MQTT
 // #define ENABLE_SCREEN
@@ -47,8 +47,25 @@ const CRGB colors[colorCount] = {
 };
 
 // NTP configuration //
+#ifdef ENABLE_TIME_MANAGER
 const char* ntpServer = "pool.ntp.org";
 const long gmtOffset_sec = 8 * 60 * 60;  // GMT+8
 const int daylightOffset_sec = 0;
+
+/**
+ * The brightness levels for day and night will be in effect between the day hours and night hours below.
+ *
+ * If there is a gap between the day hours and the night hours, the brightness will ramp up or down over that period.
+ */
+struct CycleConfig {
+  byte brightness;
+  byte start;
+  byte end;
+};
+
+const CycleConfig dayConfig = {255, 8, 18};  // 8am to 6pm
+const CycleConfig nightConfig = {0, 20, 6};  // 8pm to 6am
+
+#endif
 
 #endif

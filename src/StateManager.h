@@ -33,7 +33,7 @@ StarburstPulses starburstPulses;
 FlatRainbow flatRainbow;
 #endif
 
-const int animationCount =
+const byte animationCount =
     RANDOM_PULSES_ENABLED + CUBE_PULSES_ENABLED + STARBURST_PULSES_ENABLED + FLAT_RAINBOW_ENABLED;
 
 Animation* animations[animationCount] = {
@@ -53,13 +53,23 @@ Animation* animations[animationCount] = {
 
 class StateManager {
  public:
+  bool canSleep;
+  int sleepTimeSeconds;
   byte brightness;
   Animation* animation;
   unsigned long lastAnimationChange;
 
   StateManager() {
-    brightness = 255;
+#ifdef ENABLE_TIME_MANAGER
+    // If the system is started during the night, start with the night brightness until we confirm it's not night time
+    brightness = nightConfig.brightness;
+#else
+    brightness = dayConfig.brightness;
+#endif
+
     animationIndex = 0;
+    canSleep = false;
+    sleepTimeSeconds = 0;
     animation = animations[animationIndex];
     lastAnimationChange = millis();
   }
@@ -79,21 +89,41 @@ class StateManager {
 #ifdef ENABLE_TIME_MANAGER
   void updateBrightnessFromTime(struct tm time) {
     lock();
-    // If it's between 10pm and 6am, turn off the lights
-    if (time.tm_hour >= 22 || time.tm_hour <= 6) {
-      brightness = 0;
+    // If it's between the night start and end apply the night brightness
+    if (time.tm_hour >= nightConfig.start || time.tm_hour <= nightConfig.end) {
+      brightness = nightConfig.brightness;
+
+      if (nightConfig.brightness != 0) {
+        canSleep = false;
+      } else {
+        // If we've recently interrupted the sleep cycle with a button press, don't go back to sleep for at least an
+        // hour
+        bool recentlyWokenByButton = esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_EXT0 && millis() < 60 * 60 * 1000;
+
+        if (!recentlyWokenByButton) {
+          canSleep = true;
+          byte hoursToSleep = ((nightConfig.end + 24 - time.tm_hour) % 24) - 1;
+          int minutesToSleep = hoursToSleep * 60 + 60 - time.tm_min;
+          sleepTimeSeconds = minutesToSleep * 60 + 60 - time.tm_sec;
+        }
+      }
     }
     // If it's after 6pm start fading the brightness down
-    else if (time.tm_hour >= 18) {
-      brightness = map(time.tm_hour * 60 + time.tm_min, 18 * 60, 22 * 60, 255, 20);
+    else if (time.tm_hour >= dayConfig.end) {
+      brightness = map(time.tm_hour * 60 + time.tm_min, dayConfig.end * 60, nightConfig.start * 60,
+                       dayConfig.brightness, nightConfig.brightness);
+      canSleep = false;
     }
     // If it's before 8am start fading the brightness up
-    else if (time.tm_hour < 8) {
-      brightness = map(time.tm_hour * 60 + time.tm_min, 6 * 60, 8 * 60, 20, 255);
+    else if (time.tm_hour < dayConfig.start) {
+      brightness = map(time.tm_hour * 60 + time.tm_min, nightConfig.end * 60, dayConfig.start * 60,
+                       nightConfig.brightness, dayConfig.brightness);
+      canSleep = false;
     }
     // At other times the lights are on full
     else {
-      brightness = 255;
+      brightness = dayConfig.brightness;
+      canSleep = false;
     }
 
     unlock();

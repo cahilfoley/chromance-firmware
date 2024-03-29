@@ -28,6 +28,27 @@
 #include <MQTTManager.h>
 #endif
 
+#ifdef ENABLE_TIME_MANAGER
+void goToSleep() {
+  int sleepSeconds = min(stateManager.sleepTimeSeconds, 60 * 60);  // Cap sleep time at 1 hour
+  Serial.print("Going to sleep for ");
+  Serial.print(sleepSeconds);
+  Serial.println(" seconds");
+
+  wifiManager.disconnect();
+#ifdef ENABLE_LEDS
+  FastLED.clear(true);
+  FastLED.show();
+#endif
+  Serial.flush();
+
+  // Enable the boot button to wake up the device instead of the timer
+  esp_sleep_enable_ext0_wakeup(GPIO_NUM_0, 0);
+  // Good night
+  esp_deep_sleep((u64_t)sleepSeconds * (u64_t)US_TO_S_FACTOR);
+}
+#endif
+
 // A reference to the background thread
 TaskHandle_t backgroundTask;
 
@@ -75,6 +96,12 @@ void setup() {
 void loop() {
 #ifdef ENABLE_BENCHMARK
   unsigned long benchmark = millis();
+#endif
+
+#ifdef ENABLE_TIME_MANAGER
+  if (stateManager.canSleep) {
+    goToSleep();
+  }
 #endif
 
 #ifdef ENABLE_LEDS

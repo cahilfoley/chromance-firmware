@@ -7,6 +7,14 @@
 #include "StateManager.h"
 #include "config.h"
 
+#if defined(ENABLE_TIME_MANAGER) || defined(ENABLE_OTA) || defined(ENABLE_MQTT)
+#include <WiFiManager.h>
+#endif
+
+#ifdef ENABLE_LEDS
+#include <FastLED.h>
+#endif
+
 #ifdef ENABLE_TIME_MANAGER
 #include <TimeManager.h>
 #endif
@@ -16,11 +24,41 @@
 #include <Wire.h>
 #endif
 
+#define US_TO_S_FACTOR 1000000 /* Conversion factor for micro seconds to seconds */
+
 OneButton bootButton = OneButton(0, true, true);
 
 #ifdef ENABLE_TIME_MANAGER
 const unsigned long timeCheckInterval = 60000;
 unsigned long nextTimeCheck = 0;
+
+/**
+ * Method to print the reason by which ESP32 has been awaken from sleep
+ */
+void printWakeUpReason() {
+  auto wakeUpReason = esp_sleep_get_wakeup_cause();
+
+  switch (wakeUpReason) {
+    case ESP_SLEEP_WAKEUP_EXT0:
+      Serial.println("Wakeup caused by external signal using RTC_IO");
+      break;
+    case ESP_SLEEP_WAKEUP_EXT1:
+      Serial.println("Wakeup caused by external signal using RTC_CNTL");
+      break;
+    case ESP_SLEEP_WAKEUP_TIMER:
+      Serial.println("Wakeup caused by timer");
+      break;
+    case ESP_SLEEP_WAKEUP_TOUCHPAD:
+      Serial.println("Wakeup caused by touchpad");
+      break;
+    case ESP_SLEEP_WAKEUP_ULP:
+      Serial.println("Wakeup caused by ULP program");
+      break;
+    default:
+      Serial.printf("Wakeup was not caused by deep sleep: %d\n", wakeUpReason);
+      break;
+  }
+}
 #endif
 
 #ifdef ENABLE_SCREEN
@@ -53,17 +91,17 @@ static void handleClick() {
   updateDisplay();
 }
 
-bool firstBackgroundLoop = true;
-
 void backgroundLoop(void *parameter) {
   bootButton.attachClick(handleClick);
 
 #ifdef ENABLE_TIME_MANAGER
   timeManager.setup();
+  printWakeUpReason();
 #endif
 
 #ifdef ENABLE_SCREEN
   u8g2.begin();
+  updateDisplay();
 #endif
 
   while (true) {
@@ -85,13 +123,6 @@ void backgroundLoop(void *parameter) {
 #ifdef ENABLE_OTA
     otaManager.handle();
 #endif
-
-    if (firstBackgroundLoop) {
-#ifdef ENABLE_SCREEN
-      updateDisplay();
-#endif
-      firstBackgroundLoop = false;
-    }
 
     if (millis() - stateManager.lastAnimationChange >= animationChangeTime) {
       stateManager.selectNextAnimation();
