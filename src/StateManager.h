@@ -2,90 +2,107 @@
 #define StateManager_h
 
 #include <Arduino.h>
-#include <EventManager.h>
 
 #include <mutex>
 
 #include "config.h"
+
+#ifdef ENABLE_TIME_MANAGER
 #include "time.h"
+#endif
 
-// Auto pulse configuration
-#define NUM_AUTO_PULSE_TYPES 4
-enum AnimationType {
-  RandomPulses = 0,
-  CubePulses = 1,
-  StarburstPulses = 2,
-  FlatRainbow = 3
+#include "animation/base/Animation.h"
+
+#if RANDOM_PULSES_ENABLED
+#include "animation/RandomPulses.h"
+RandomPulses randomPulses;
+#endif
+
+#if CUBE_PULSES_ENABLED
+#include "animation/CubePulses.h"
+CubePulses cubePulses;
+#endif
+
+#if STARBURST_PULSES_ENABLED
+#include "animation/StarburstPulses.h"
+StarburstPulses starburstPulses;
+#endif
+
+#if FLAT_RAINBOW_ENABLED
+#include "animation/FlatRainbow.h"
+FlatRainbow flatRainbow;
+#endif
+
+const int animationCount =
+    RANDOM_PULSES_ENABLED + CUBE_PULSES_ENABLED + STARBURST_PULSES_ENABLED + FLAT_RAINBOW_ENABLED;
+
+Animation* animations[animationCount] = {
+#if RANDOM_PULSES_ENABLED
+    &randomPulses,
+#endif
+#if CUBE_PULSES_ENABLED
+    &cubePulses,
+#endif
+#if STARBURST_PULSES_ENABLED
+    &starburstPulses,
+#endif
+#if FLAT_RAINBOW_ENABLED
+    &flatRainbow,
+#endif
 };
-const char* animationNames[] = {
-    "Random Pulses",
-    "Cube Pulses",
-    "Starburst Pulses",
-    "System Pulse",
-};
 
-#define randomPulseTime 2000  // Fire a random pulse every (this many) ms
-
-class StateManager : public EventManager {
+class StateManager {
  public:
   byte brightness;
-  AnimationType animation;
+  Animation* animation;
   unsigned long lastAnimationChange;
-  std::mutex stateLock;
 
   StateManager() {
     brightness = 255;
-    animation = FlatRainbow;
+    animationIndex = 0;
+    animation = animations[animationIndex];
     lastAnimationChange = millis();
   }
+
+  void lock() { stateLock.lock(); };
+  void unlock() { stateLock.unlock(); };
 
   void selectNextAnimation() {
-    stateLock.lock();
-    findNextAnimation();
+    lock();
+    animationIndex = (animationIndex + 1) % animationCount;
+    animation = animations[animationIndex];
+    animation->activate();
     lastAnimationChange = millis();
-    stateLock.unlock();
-    emit("animationChange", animation);
-  }
+    unlock();
+  };
 
+#ifdef ENABLE_TIME_MANAGER
   void updateBrightnessFromTime(struct tm time) {
-    stateLock.lock();
+    lock();
     // If it's between 10pm and 6am, turn off the lights
     if (time.tm_hour >= 22 || time.tm_hour <= 6) {
       brightness = 0;
     }
     // If it's after 6pm start fading the brightness down
     else if (time.tm_hour >= 18) {
-      brightness =
-          map(time.tm_hour * 60 + time.tm_min, 18 * 60, 22 * 60, 255, 20);
+      brightness = map(time.tm_hour * 60 + time.tm_min, 18 * 60, 22 * 60, 255, 20);
     }
     // If it's before 8am start fading the brightness up
     else if (time.tm_hour < 8) {
-      brightness =
-          map(time.tm_hour * 60 + time.tm_min, 6 * 60, 8 * 60, 20, 255);
+      brightness = map(time.tm_hour * 60 + time.tm_min, 6 * 60, 8 * 60, 20, 255);
     }
     // At other times the lights are on full
     else {
       brightness = 255;
     }
 
-    stateLock.unlock();
-    emit("brightnessChange", brightness);
-  }
+    unlock();
+  };
+#endif
 
  private:
-  void findNextAnimation() {
-    animation = (AnimationType)((animation + 1) % NUM_AUTO_PULSE_TYPES);
-    switch (animation) {
-      case RandomPulses:
-        if (!randomPulsesEnabled) return findNextAnimation();
-      case CubePulses:
-        if (!cubePulsesEnabled) return findNextAnimation();
-      case StarburstPulses:
-        if (!starburstPulsesEnabled) return findNextAnimation();
-      case FlatRainbow:
-        if (!flatRainbowEnabled) return findNextAnimation();
-    }
-  }
+  byte animationIndex = 0;
+  std::mutex stateLock;
 };
 
 StateManager stateManager;

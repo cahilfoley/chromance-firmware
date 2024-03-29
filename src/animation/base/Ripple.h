@@ -11,9 +11,9 @@
 
 #include <FastLED.h>
 
-#include "Graph.h"
 #include "config.h"
-#include "mapping.h"
+#include "system/Graph.h"
+#include "system/mapping.h"
 
 enum rippleState {
   dead,
@@ -23,13 +23,7 @@ enum rippleState {
   travelingDownwards
 };
 
-enum RippleBehavior {
-  weaksauce = 0,
-  feisty = 1,
-  angry = 2,
-  alwaysTurnsRight = 3,
-  alwaysTurnsLeft = 4
-};
+enum RippleBehavior { weaksauce = 0, feisty = 1, angry = 2, alwaysTurnsRight = 3, alwaysTurnsLeft = 4 };
 
 float fmap(float x, float in_min, float in_max, float out_min, float out_max) {
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
@@ -48,8 +42,7 @@ class Ripple {
   byte direction;
 
   // Place the Ripple in a node
-  void start(Node *node, byte direction, CRGB _color, float _speed,
-             unsigned long _lifespan, RippleBehavior _behavior) {
+  void start(Node *node, byte direction, CRGB _color, float _speed, unsigned long _lifespan, RippleBehavior _behavior) {
     color = _color;
     speed = _speed;
     lifespan = _lifespan;
@@ -75,11 +68,9 @@ class Ripple {
     unsigned long timeSinceLastRender = now - lastRender;
     float timeMultiplier = fmap(timeSinceLastRender, 6, 60, 1, 10);
 
-    pressure +=
-        fmap(float(age), 0.0, float(lifespan), speed, 0.0) * timeMultiplier;
+    pressure += fmap(float(age), 0.0, float(lifespan), speed, 0.0) * timeMultiplier;
 
-    if (pressure < 1 &&
-        (state == travelingUpwards || state == travelingDownwards)) {
+    if (pressure < 1 && (state == travelingUpwards || state == travelingDownwards)) {
       // Ripple is visible but hasn't moved - render it to avoid flickering
       renderLED(ledColors, age);
     }
@@ -126,8 +117,7 @@ class Ripple {
                     // We can't go straight ahead - we need to take a more
                     // aggressive angle
 #ifdef DEBUG_ADVANCEMENT
-                    Serial.println(
-                        "  Can't go straight - picking more agr. path");
+                    Serial.println("  Can't go straight - picking more agr. path");
 #endif
                     anger++;
                   } else {
@@ -159,8 +149,7 @@ class Ripple {
                     newDirection = wideRight;
                   } else {
 #ifdef DEBUG_ADVANCEMENT
-                    Serial.println(
-                        "  Can't make wide turn - picking more agr. path");
+                    Serial.println("  Can't make wide turn - picking more agr. path");
 #endif
                     // Can't take shallow turn - must become more aggressive
                     anger++;
@@ -188,8 +177,7 @@ class Ripple {
                     newDirection = sharpRight;
                   } else {
 #ifdef DEBUG_ADVANCEMENT
-                    Serial.println(
-                        "  Can't make tight turn - picking less agr. path");
+                    Serial.println("  Can't make tight turn - picking less agr. path");
 #endif
                     // Can't take tight turn - must become less aggressive
                     anger--;
@@ -245,8 +233,7 @@ class Ripple {
           Serial.println(strips->index);
 #endif
 
-          if (direction == 5 || direction == 0 ||
-              direction == 1) {  // Top half of the node
+          if (direction == 5 || direction == 0 || direction == 1) {  // Top half of the node
 #ifdef DEBUG_ADVANCEMENT
             Serial.println("  (starting at bottom)");
 #endif
@@ -373,8 +360,7 @@ class Ripple {
     int nextLED = ledIndex + state == travelingUpwards ? 1 : -1;
     if (pressure < 1 && nextLED >= 0 && nextLED < strip->length) {
       // If we are partially into the next LED we can partially render it
-      strip->applyColorToLED(ledColors, nextLED, color,
-                             pressure * ageBasedProportion);
+      strip->applyColorToLED(ledColors, nextLED, color, pressure * ageBasedProportion);
     }
 
 #ifdef DEBUG_RENDERING
@@ -394,6 +380,16 @@ class Ripple {
     Serial.println();
 #endif
   }
+};
+
+// These ripples are endlessly reused so we don't need to do any memory
+// management
+#define numberOfRipples 30
+Ripple ripples[numberOfRipples] = {
+    Ripple(0),  Ripple(1),  Ripple(2),  Ripple(3),  Ripple(4),  Ripple(5),  Ripple(6),  Ripple(7),
+    Ripple(8),  Ripple(9),  Ripple(10), Ripple(11), Ripple(12), Ripple(13), Ripple(14), Ripple(15),
+    Ripple(16), Ripple(17), Ripple(18), Ripple(19), Ripple(20), Ripple(21), Ripple(22), Ripple(23),
+    Ripple(24), Ripple(25), Ripple(26), Ripple(27), Ripple(28), Ripple(29),
 };
 
 #endif

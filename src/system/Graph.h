@@ -4,15 +4,17 @@
 #include <FastLED.h>
 
 #include "config.h"
-#include "mapping.h"
+#include "system/mapping.h"
 
 class Node;
 
 class Strip {
  public:
-  int index;
-  int length = STRIP_LED_COUNT;
-  int channel;
+  byte index;
+  byte length = STRIP_LED_COUNT;
+  byte channel;
+  byte row;
+  byte column;
   int channelLEDOffset;
   int channelOffset;
   int channelLength;
@@ -23,8 +25,10 @@ class Strip {
   Node *bottomNode;
 
   Strip(){};
-  Strip(int _index) {
+  Strip(byte _index) {
     index = _index;
+    row = stripConfigs[index].row;
+    column = stripConfigs[index].column;
     channel = stripConfigs[index].channelIndex;
     channelLength = lengths[channel];
     channelOffset = channelOffsets[channel];
@@ -33,14 +37,11 @@ class Strip {
   }
 
   /** Get the global LED index for a given index on the strip */
-  int getLEDIndex(int stripIndex) {
-    return map(stripIndex, 0, length - 1, stripEndLED, stripStartLED);
-  }
+  int getLEDIndex(int stripIndex) { return map(stripIndex, 0, length - 1, stripEndLED, stripStartLED); }
 
   /** Merge the provided colour into the target LED weighted by the provided
    * proportion */
-  void applyColorToLED(CRGB ledColors[TOTAL_LEDS], int led, CRGB color,
-                       float proportion) {
+  void applyColorToLED(CRGB ledColors[TOTAL_LEDS], int led, CRGB color, float proportion) {
     int ledIndex = getLEDIndex(led);
     CRGB currentColour = ledColors[ledIndex];
 
@@ -52,21 +53,40 @@ class Strip {
 
 class Node {
  public:
-  int index;
+  byte index;
   Strip *strips[6];
+  bool borderNode = false;
   Node(){};
-  Node(int index) { this->index = index; }
+  Node(byte index) { this->index = index; }
+
+  byte getStripCount() {
+    byte count = 0;
+    for (byte i = 0; i < 6; i++) {
+      if (strips[i] != nullptr) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  void calculateProperties() {
+    if (this->getStripCount() == 2) {
+      borderNode = true;
+    }
+  }
 };
 
 class Graph {
  public:
   Strip strips[STRIP_COUNT];
   Node nodes[NODE_COUNT];
+  // Strip *stripCoords[stripRowCount][stripColumnCount];
 
   Graph() {
     // Create all of the strips
     for (int stripIndex = 0; stripIndex < STRIP_COUNT; stripIndex++) {
       strips[stripIndex] = Strip(stripIndex);
+      // stripCoords[strip.row][strip.column] = &strip;
     }
 
     // Create all of the nodes
@@ -84,11 +104,16 @@ class Graph {
     // Add all of the strip references to each node
     for (int nodeIndex = 0; nodeIndex < NODE_COUNT; nodeIndex++) {
       for (int direction = 0; direction < 6; direction++) {
-        int stripIndex = nodeConnections[nodeIndex][direction];
+        int stripIndex = nodeConnections[nodeIndex].stripsIndexes[direction];
         if (stripIndex >= 0) {
           nodes[nodeIndex].strips[direction] = &strips[stripIndex];
         }
       }
+    }
+
+    // Do any post assembly property calculations (like figuring out border nodes)
+    for (auto &node : nodes) {
+      node.calculateProperties();
     }
   }
 };

@@ -1,6 +1,17 @@
 #ifndef config_h
 #define config_h
 
+#define ENABLE_LEDS
+#define ENABLE_TIME_MANAGER
+// #define ENABLE_OTA
+// #define ENABLE_MQTT
+// #define ENABLE_SCREEN
+// #define ENABLE_BENCHMARK
+// #define ENABLE_BENCHMARK_BACKGROUND
+// #define WAIT_FOR_SERIAL
+
+#include <FastLED.h>
+
 // The number of channels in the system
 const int CHANNEL_COUNT = 4;
 // The number of strips in the system
@@ -12,18 +23,28 @@ const int TOTAL_LEDS = STRIP_COUNT * STRIP_LED_COUNT;
 // The number of nodes in the system
 const int NODE_COUNT = 25;
 
-// The length of each channel in LEDs
-const int lengths[CHANNEL_COUNT] = {154, 168, 84, 154};
-
 // Animation configuration //
 /** The interval between automatic animation changes */
 const int animationChangeTime = 30000;
 
-const bool randomPulsesEnabled = true;  // Fire random pulses from random nodes
-const bool cubePulsesEnabled = true;    // Draw cubes at random nodes
-const bool starburstPulsesEnabled = true;  // Draw starbursts
-const bool flatRainbowEnabled = true;  // Draw a flat colour that cycles through
-                                       // rainbow colors across the whole system
+#define RANDOM_PULSES_ENABLED true     // Fire random pulses from random nodes
+#define CUBE_PULSES_ENABLED true       // Draw cubes at random nodes
+#define STARBURST_PULSES_ENABLED true  // Draw starbursts
+#define FLAT_RAINBOW_ENABLED true      // Draw a flat colour that cycles through the rainbow
+
+/** For random pulse animations, the duration between pulses */
+const int randomPulseInterval = 2000;
+
+// Color configuration //
+const byte colorCount = 6;
+const CRGB colors[colorCount] = {
+    CRGB(255, 0, 0),    // Red
+    CRGB(255, 255, 0),  // Yellow
+    CRGB(0, 255, 0),    // Green
+    CRGB(0, 255, 255),  // Cyan
+    CRGB(0, 0, 255),    // Blue
+    CRGB(255, 0, 255)   // Magenta
+};
 
 // NTP configuration //
 const char* ntpServer = "pool.ntp.org";
