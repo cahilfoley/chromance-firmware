@@ -103,11 +103,10 @@ class Strip {
    * proportion */
   void applyColorToLED(CRGB ledColors[TOTAL_LEDS], int led, CRGB color, float proportion) {
     auto ledCoordinate = leds[led];
-    CRGB currentColour = ledColors[ledCoordinate.globalIndex];
+    auto currentColor = &ledColors[ledCoordinate.globalIndex];
 
-    ledColors[ledCoordinate.globalIndex].setRGB(qadd8(currentColour.r, color.r * proportion),
-                                                qadd8(currentColour.g, color.g * proportion),
-                                                qadd8(currentColour.b, color.b * proportion));
+    currentColor->setRGB(qadd8(currentColor->r, color.r * proportion), qadd8(currentColor->g, color.g * proportion),
+                         qadd8(currentColor->b, color.b * proportion));
   }
 
  private:
