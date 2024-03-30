@@ -3,7 +3,7 @@
 
 #define ENABLE_LEDS
 #define ENABLE_TIME_MANAGER  // Connects to NTP server to get time and adjusts the brightness at night
-// #define ENABLE_OTA
+#define ENABLE_OTA
 // #define ENABLE_MQTT
 // #define ENABLE_SCREEN
 // #define ENABLE_BENCHMARK

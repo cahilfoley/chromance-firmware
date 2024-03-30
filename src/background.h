@@ -11,6 +11,10 @@
 #include <WiFiManager.h>
 #endif
 
+#ifdef ENABLE_OTA
+#include <OTAManager.h>
+#endif
+
 #ifdef ENABLE_LEDS
 #include <FastLED.h>
 #endif

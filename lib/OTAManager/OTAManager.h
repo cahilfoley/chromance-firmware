@@ -6,15 +6,11 @@
 #include <WiFi.h>
 #include <WiFiUdp.h>
 
-#include "WiFiManager.h"
-
-WiFiClient wifiClient;
-
 class OTAManager {
  public:
   void setup() {
     // Hostname defaults to esp3232-[MAC]
-    // ArduinoOTA.setHostname("cahil-chromance-esp32");
+    ArduinoOTA.setHostname("chromance-esp32");
 
     // No authentication by default
     // ArduinoOTA.setPassword("admin");
@@ -53,5 +49,7 @@ class OTAManager {
 
   void handle() { ArduinoOTA.handle(); }
 };
+
+OTAManager otaManager;
 
 #endif
