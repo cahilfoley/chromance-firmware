@@ -66,6 +66,14 @@ class Ripple {
     unsigned long now = millis();
     unsigned long age = now - birthday;
     unsigned long timeSinceLastRender = now - lastRender;
+
+    // If we are suddenly older than our lifespan, we need to die, probably happened because of a non-ripple based
+    // animation running for a while
+    if (age > lifespan + 1000) {
+      state = dead;
+      return;
+    }
+
     float timeMultiplier = fmap(timeSinceLastRender, 6, 60, 1, 10);
 
     pressure += fmap(float(age), 0.0, float(lifespan), speed, 0.0) * timeMultiplier;

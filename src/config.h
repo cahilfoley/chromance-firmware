@@ -27,10 +27,12 @@ const int NODE_COUNT = 25;
 /** The interval between automatic animation changes */
 const int animationChangeTime = 30000;
 
-#define RANDOM_PULSES_ENABLED true     // Fire random pulses from random nodes
-#define CUBE_PULSES_ENABLED true       // Draw cubes at random nodes
-#define STARBURST_PULSES_ENABLED true  // Draw starbursts
-#define FLAT_RAINBOW_ENABLED true      // Draw a flat colour that cycles through the rainbow
+#define RANDOM_PULSES_ENABLED true            // Fire random pulses from random nodes
+#define CUBE_PULSES_ENABLED true              // Draw cubes at random nodes
+#define RAINBOW_HORIZONTAL_WAVE_ENABLED true  // Draw a rainbow across the system
+#define RAINBOW_VERTICAL_WAVE_ENABLED true    // Draw a rainbow across the system
+#define STARBURST_PULSES_ENABLED true         // Draw starbursts
+#define FLAT_RAINBOW_ENABLED true             // Draw a flat colour that cycles through the rainbow
 
 /** For random pulse animations, the duration between pulses */
 const int randomPulseInterval = 2000;

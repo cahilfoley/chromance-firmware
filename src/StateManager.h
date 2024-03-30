@@ -23,6 +23,16 @@ RandomPulses randomPulses;
 CubePulses cubePulses;
 #endif
 
+#if RAINBOW_HORIZONTAL_WAVE_ENABLED || RAINBOW_VERTICAL_WAVE_ENABLED
+#include "animation/RainbowWave.h"
+#if RAINBOW_HORIZONTAL_WAVE_ENABLED
+RainbowWave rainbowHorizontalWave = RainbowWave(horizontalScroll);
+#endif
+#if RAINBOW_VERTICAL_WAVE_ENABLED
+RainbowWave rainbowVerticalWave = RainbowWave(verticalScroll);
+#endif
+#endif
+
 #if STARBURST_PULSES_ENABLED
 #include "animation/StarburstPulses.h"
 StarburstPulses starburstPulses;
@@ -33,15 +43,21 @@ StarburstPulses starburstPulses;
 FlatRainbow flatRainbow;
 #endif
 
-const byte animationCount =
-    RANDOM_PULSES_ENABLED + CUBE_PULSES_ENABLED + STARBURST_PULSES_ENABLED + FLAT_RAINBOW_ENABLED;
+const byte animationCount = RANDOM_PULSES_ENABLED + CUBE_PULSES_ENABLED + RAINBOW_HORIZONTAL_WAVE_ENABLED +
+                            RAINBOW_VERTICAL_WAVE_ENABLED + STARBURST_PULSES_ENABLED + FLAT_RAINBOW_ENABLED;
 
 Animation* animations[animationCount] = {
 #if RANDOM_PULSES_ENABLED
     &randomPulses,
 #endif
+#if RAINBOW_VERTICAL_WAVE_ENABLED
+    &rainbowVerticalWave,
+#endif
 #if CUBE_PULSES_ENABLED
     &cubePulses,
+#endif
+#if RAINBOW_HORIZONTAL_WAVE_ENABLED
+    &rainbowHorizontalWave,
 #endif
 #if STARBURST_PULSES_ENABLED
     &starburstPulses,

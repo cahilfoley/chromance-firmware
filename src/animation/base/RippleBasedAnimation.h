@@ -6,7 +6,7 @@
 
 class RippleBasedAnimation : public Animation {
  public:
-  void render(CRGB leds[TOTAL_LEDS]) {
+  void preRender(CRGB leds[TOTAL_LEDS]) {
     Animation::render(leds);
     for (byte i = 0; i < numberOfRipples; i++) {
       if (ripples[i].state != dead) {
