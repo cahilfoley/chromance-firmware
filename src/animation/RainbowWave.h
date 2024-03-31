@@ -4,7 +4,7 @@
 #include "animation/base/Animation.h"
 #include "config.h"
 
-enum Direction { horizontalScroll = 0, verticalScroll = 1 };
+enum Direction { horizontalScroll = 0, verticalScroll = 1, circularWave = 2 };
 
 class RainbowWave : public Animation {
  public:
@@ -13,7 +13,11 @@ class RainbowWave : public Animation {
   RainbowWave() : Animation(), direction(horizontalScroll) {}
   RainbowWave(Direction direction) : Animation(), direction(direction) {}
 
-  void activate() { lastActivationTime = millis(); }
+  void activate() {
+    lastActivationTime = millis();
+    auto centerNode = &graph.nodes[starburstNode];
+    maxDistanceFromCenter = sqrt(centerNode->x * centerNode->x + centerNode->y * centerNode->y);
+  }
 
   void render(CRGB leds[TOTAL_LEDS]) {
     Animation::render(leds);
@@ -34,11 +38,16 @@ class RainbowWave : public Animation {
 
     for (auto &strip : graph.strips) {
       for (auto &led : strip.leds) {
-        int baseHue;
+        int baseHue = 0;
         if (direction == horizontalScroll) {
           baseHue = map(led.x + hueShift, 0, xLimit, 0, 255);
-        } else {
+        } else if (direction == verticalScroll) {
           baseHue = map(led.y + hueShift, 0, yLimit, 0, 255);
+        } else if (direction == circularWave) {
+          int dx = graph.nodes[starburstNode].x - led.x;
+          int dy = graph.nodes[starburstNode].y - led.y;
+          int distanceFromCenter = sqrt(dx * dx + dy * dy);
+          baseHue = map(distanceFromCenter, 0, maxDistanceFromCenter, 0, 255);
         }
 
         leds[led.globalIndex] = CHSV((baseHue + hueShift) % 255, 255, value);
@@ -48,6 +57,7 @@ class RainbowWave : public Animation {
 
  private:
   unsigned long lastActivationTime = 0;
+  int maxDistanceFromCenter;
 };
 
 #endif

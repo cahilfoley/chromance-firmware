@@ -31,6 +31,9 @@ RainbowWave rainbowHorizontalWave = RainbowWave(horizontalScroll);
 #if RAINBOW_VERTICAL_WAVE_ENABLED
 RainbowWave rainbowVerticalWave = RainbowWave(verticalScroll);
 #endif
+#if RAINBOW_CIRCULAR_WAVE_ENABLED
+RainbowWave rainbowCircularWave = RainbowWave(circularWave);
+#endif
 #endif
 
 #if STARBURST_PULSES_ENABLED
@@ -44,7 +47,8 @@ FlatRainbow flatRainbow;
 #endif
 
 const byte animationCount = RANDOM_PULSES_ENABLED + CUBE_PULSES_ENABLED + RAINBOW_HORIZONTAL_WAVE_ENABLED +
-                            RAINBOW_VERTICAL_WAVE_ENABLED + STARBURST_PULSES_ENABLED + FLAT_RAINBOW_ENABLED;
+                            RAINBOW_VERTICAL_WAVE_ENABLED + RAINBOW_CIRCULAR_WAVE_ENABLED + STARBURST_PULSES_ENABLED +
+                            FLAT_RAINBOW_ENABLED;
 
 Animation* animations[animationCount] = {
 #if RANDOM_PULSES_ENABLED
@@ -61,6 +65,9 @@ Animation* animations[animationCount] = {
 #endif
 #if STARBURST_PULSES_ENABLED
     &starburstPulses,
+#endif
+#if RAINBOW_CIRCULAR_WAVE_ENABLED
+    &rainbowCircularWave,
 #endif
 #if FLAT_RAINBOW_ENABLED
     &flatRainbow,

@@ -48,8 +48,7 @@ class Ripple {
     lifespan = _lifespan;
     behavior = _behavior;
 
-    birthday = millis();
-    lastRender = millis();
+    birthday = lastRender = millis();
     pressure = 0;
     state = withinNode;
 
@@ -362,13 +361,13 @@ class Ripple {
   byte rippleID;  // Used to identify this ripple in debug output
 
   void renderLED(CRGB ledColors[TOTAL_LEDS], unsigned long age) {
-    float ageBasedProportion = fmap(float(age), 0.0, float(lifespan), 1.0, 0.0);
+    byte ageBasedProportion = map(age, 0, lifespan, 255, 0);
     strip->applyColorToLED(ledColors, ledIndex, color, ageBasedProportion);
 
     int nextLED = ledIndex + state == travelingUpwards ? 1 : -1;
     if (pressure < 1 && nextLED >= 0 && nextLED < strip->length) {
       // If we are partially into the next LED we can partially render it
-      strip->applyColorToLED(ledColors, nextLED, color, pressure * ageBasedProportion);
+      strip->applyColorToLED(ledColors, nextLED, color, byte(pressure * float(ageBasedProportion)));
     }
 
 #ifdef DEBUG_RENDERING
