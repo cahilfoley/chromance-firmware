@@ -11,6 +11,7 @@ class WiFiManager {
     Serial.begin(115200);
     WiFi.persistent(false);
     WiFi.mode(WIFI_STA);
+    WiFi.setHostname("chromance-esp32");
     WiFi.begin(wifiSSID, wifiPassword);
 
     Serial.println("Connecting to wifi");

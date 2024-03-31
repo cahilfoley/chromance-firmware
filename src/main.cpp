@@ -104,6 +104,10 @@ void loop() {
   }
 #endif
 
+#ifdef ENABLE_OTA
+  otaManager.handle();
+#endif
+
 #ifdef ENABLE_LEDS
   auto animation = stateManager.animation;
 

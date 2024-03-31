@@ -11,10 +11,6 @@
 #include <WiFiManager.h>
 #endif
 
-#ifdef ENABLE_OTA
-#include <OTAManager.h>
-#endif
-
 #ifdef ENABLE_LEDS
 #include <FastLED.h>
 #endif
@@ -124,16 +120,12 @@ void backgroundLoop(void *parameter) {
     }
 #endif
 
-#ifdef ENABLE_OTA
-    otaManager.handle();
-#endif
-
     if (millis() - stateManager.lastAnimationChange >= animationChangeTime) {
       stateManager.selectNextAnimation();
       updateDisplay();
     }
 
-    delay(2);
+    delay(1);
 
 #ifdef ENABLE_BENCHMARK_BACKGROUND
     Serial.print("Background benchmark: ");
