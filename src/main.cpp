@@ -30,10 +30,11 @@
 
 #ifdef ENABLE_TIME_MANAGER
 void goToSleep() {
-  int sleepSeconds = min(stateManager.sleepTimeSeconds, 60 * 60);  // Cap sleep time at 1 hour
+  int sleepSeconds = min(abs(stateManager.sleepTimeSeconds), 60 * 60);  // Cap sleep time at 1 hour
   Serial.print("Going to sleep for ");
   Serial.print(sleepSeconds);
   Serial.println(" seconds");
+  displayManager.showMessage("Sleeping...");
 
   wifiManager.disconnect();
 #ifdef ENABLE_LEDS

@@ -6,6 +6,8 @@
 
 class RandomPulses : public RippleBasedAnimation {
  public:
+  RandomPulses() : RippleBasedAnimation("Random Pulses") {}
+
   void preRender(CRGB leds[TOTAL_LEDS]) {
     RippleBasedAnimation::preRender(leds);
 
@@ -14,7 +16,7 @@ class RandomPulses : public RippleBasedAnimation {
 
     lastRandomPulse = now;
     lastColorIndex = (lastColorIndex + 1) % colorCount;
-    CRGB baseColor = colors[lastColorIndex];
+    auto baseColor = &colors[lastColorIndex];
 
     auto node = &graph.nodes[random(NODE_COUNT)];
     byte loopProtection = 0;

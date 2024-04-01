@@ -5,7 +5,7 @@
 #define ENABLE_TIME_MANAGER  // Connects to NTP server to get time and adjusts the brightness at night
 #define ENABLE_OTA
 // #define ENABLE_MQTT
-// #define ENABLE_SCREEN
+#define ENABLE_SCREEN
 // #define ENABLE_BENCHMARK
 // #define ENABLE_BENCHMARK_BACKGROUND
 // #define WAIT_FOR_SERIAL
@@ -27,13 +27,11 @@ const int NODE_COUNT = 25;
 /** The interval between automatic animation changes */
 const int animationChangeTime = 30000;
 
-#define RANDOM_PULSES_ENABLED true            // Fire random pulses from random nodes
-#define CUBE_PULSES_ENABLED true              // Draw cubes at random nodes
-#define RAINBOW_HORIZONTAL_WAVE_ENABLED true  // Draw a rainbow across the system
-#define RAINBOW_VERTICAL_WAVE_ENABLED true    // Draw a rainbow across the system
-#define RAINBOW_CIRCULAR_WAVE_ENABLED true    // Draw a rainbow across the system
-#define STARBURST_PULSES_ENABLED true         // Draw starbursts
-#define FLAT_RAINBOW_ENABLED false            // Draw a flat colour that cycles through the rainbow
+#define RANDOM_PULSES_ENABLED true     // Fire random pulses from random nodes
+#define CUBE_PULSES_ENABLED true       // Draw cubes at random nodes
+#define RAINBOW_WAVE_ENABLED true      // Draw a rainbow across the system
+#define STARBURST_PULSES_ENABLED true  // Draw starbursts
+#define FLAT_RAINBOW_ENABLED false     // Draw a flat colour that cycles through the rainbow
 
 /** For random pulse animations, the duration between pulses */
 const int randomPulseInterval = 2000;

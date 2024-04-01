@@ -2,6 +2,7 @@
 #define StateManager_h
 
 #include <Arduino.h>
+#include <TimeManager.h>
 
 #include <mutex>
 
@@ -23,17 +24,9 @@ RandomPulses randomPulses;
 CubePulses cubePulses;
 #endif
 
-#if RAINBOW_HORIZONTAL_WAVE_ENABLED || RAINBOW_VERTICAL_WAVE_ENABLED
+#if RAINBOW_WAVE_ENABLED
 #include "animation/RainbowWave.h"
-#if RAINBOW_HORIZONTAL_WAVE_ENABLED
-RainbowWave rainbowHorizontalWave = RainbowWave(horizontalScroll);
-#endif
-#if RAINBOW_VERTICAL_WAVE_ENABLED
-RainbowWave rainbowVerticalWave = RainbowWave(verticalScroll);
-#endif
-#if RAINBOW_CIRCULAR_WAVE_ENABLED
-RainbowWave rainbowCircularWave = RainbowWave(circularWave);
-#endif
+RainbowWave rainbowWave;
 #endif
 
 #if STARBURST_PULSES_ENABLED
@@ -46,37 +39,36 @@ StarburstPulses starburstPulses;
 FlatRainbow flatRainbow;
 #endif
 
-const byte animationCount = RANDOM_PULSES_ENABLED + CUBE_PULSES_ENABLED + RAINBOW_HORIZONTAL_WAVE_ENABLED +
-                            RAINBOW_VERTICAL_WAVE_ENABLED + RAINBOW_CIRCULAR_WAVE_ENABLED + STARBURST_PULSES_ENABLED +
-                            FLAT_RAINBOW_ENABLED;
-
-Animation* animations[animationCount] = {
+Animation* animations[] = {
 #if RANDOM_PULSES_ENABLED
     &randomPulses,
 #endif
-#if RAINBOW_VERTICAL_WAVE_ENABLED
-    &rainbowVerticalWave,
+#if RAINBOW_WAVE_ENABLED
+    &rainbowWave,
 #endif
 #if CUBE_PULSES_ENABLED
     &cubePulses,
 #endif
-#if RAINBOW_HORIZONTAL_WAVE_ENABLED
-    &rainbowHorizontalWave,
+#if RAINBOW_WAVE_ENABLED
+    &rainbowWave,
 #endif
 #if STARBURST_PULSES_ENABLED
     &starburstPulses,
 #endif
-#if RAINBOW_CIRCULAR_WAVE_ENABLED
-    &rainbowCircularWave,
+#if RAINBOW_WAVE_ENABLED
+    &rainbowWave,
 #endif
 #if FLAT_RAINBOW_ENABLED
     &flatRainbow,
 #endif
 };
 
+const int ANIMATION_COUNT = sizeof(animations) / sizeof(animations[0]);
+
 class StateManager {
  public:
   bool canSleep;
+  bool autoBrightness = true;
   int sleepTimeSeconds;
   byte brightness;
   Animation* animation;
@@ -95,14 +87,31 @@ class StateManager {
     sleepTimeSeconds = 0;
     animation = animations[animationIndex];
     lastAnimationChange = millis();
+    animation->activate();
   }
 
   void lock() { stateLock.lock(); };
   void unlock() { stateLock.unlock(); };
 
+  void toggleAutoBrightness() {
+    lock();
+    autoBrightness = !autoBrightness;
+#ifdef ENABLE_TIME_MANAGER
+    if (autoBrightness) {
+      // If we're toggling auto brightness on, update the brightness based on the current time
+      auto time = timeManager.getCurrentLocalTime();
+      updateBrightnessFromTime(time);
+    } else {
+      // If we're toggling auto brightness off, set the brightness to full
+      brightness = 255;
+    }
+#endif
+    unlock();
+  };
+
   void selectNextAnimation() {
     lock();
-    animationIndex = (animationIndex + 1) % animationCount;
+    animationIndex = (animationIndex + 1) % ANIMATION_COUNT;
     animation = animations[animationIndex];
     animation->activate();
     lastAnimationChange = millis();
@@ -111,6 +120,8 @@ class StateManager {
 
 #ifdef ENABLE_TIME_MANAGER
   void updateBrightnessFromTime(struct tm time) {
+    if (!autoBrightness) return;
+
     lock();
     // If it's between the night start and end apply the night brightness
     if (time.tm_hour >= nightConfig.start || time.tm_hour <= nightConfig.end) {
@@ -125,9 +136,10 @@ class StateManager {
 
         if (!recentlyWokenByButton) {
           canSleep = true;
-          byte hoursToSleep = ((nightConfig.end + 24 - time.tm_hour) % 24) - 1;
-          int minutesToSleep = hoursToSleep * 60 + 60 - time.tm_min;
-          sleepTimeSeconds = minutesToSleep * 60 + 60 - time.tm_sec;
+          byte hoursToSleep = (nightConfig.end + 24 - time.tm_hour) % 24;
+          if (hoursToSleep > 0) hoursToSleep -= 1;  // Only subtract 1 if hoursToSleep is not 0
+          int minutesToSleep = hoursToSleep * 60 + 59 - time.tm_min;
+          sleepTimeSeconds = minutesToSleep * 60 + 59 - time.tm_sec;
         }
       }
     }

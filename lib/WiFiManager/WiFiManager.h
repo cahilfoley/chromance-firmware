@@ -28,6 +28,8 @@ class WiFiManager {
     WiFi.disconnect();
     WiFi.mode(WIFI_OFF);
   }
+
+  bool isConnected() { return WiFi.status() == WL_CONNECTED; }
 };
 
 WiFiManager wifiManager;

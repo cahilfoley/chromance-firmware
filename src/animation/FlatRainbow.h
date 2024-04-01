@@ -6,6 +6,8 @@
 
 class FlatRainbow : public Animation {
  public:
+  FlatRainbow() : Animation("Flat Rainbow") {}
+
   void activate() { lastActivationTime = millis(); }
 
   void render(CRGB leds[TOTAL_LEDS]) {

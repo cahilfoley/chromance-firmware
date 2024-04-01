@@ -34,7 +34,7 @@ class Ripple {
   Ripple(int id) : rippleID(id) {}
 
   rippleState state = dead;
-  CRGB color;
+  const CRGB *color;
 
   Strip *strip;
   Node *node;
@@ -42,7 +42,8 @@ class Ripple {
   byte direction;
 
   // Place the Ripple in a node
-  void start(Node *node, byte direction, CRGB _color, float _speed, unsigned long _lifespan, RippleBehavior _behavior) {
+  void start(Node *node, byte direction, const CRGB *_color, float _speed, unsigned long _lifespan,
+             RippleBehavior _behavior) {
     color = _color;
     speed = _speed;
     lifespan = _lifespan;
@@ -361,14 +362,15 @@ class Ripple {
   byte rippleID;  // Used to identify this ripple in debug output
 
   void renderLED(CRGB ledColors[TOTAL_LEDS], unsigned long age) {
-    byte ageBasedProportion = map(age, 0, lifespan, 255, 0);
+    float ageBasedProportion = 1.0 - min(float(age) / float(lifespan), float(1.0));
+
     strip->applyColorToLED(ledColors, ledIndex, color, ageBasedProportion);
 
-    int nextLED = ledIndex + state == travelingUpwards ? 1 : -1;
-    if (pressure < 1 && nextLED >= 0 && nextLED < strip->length) {
-      // If we are partially into the next LED we can partially render it
-      strip->applyColorToLED(ledColors, nextLED, color, byte(pressure * float(ageBasedProportion)));
-    }
+    // int nextLED = ledIndex + (state == travelingUpwards ? 1 : -1);
+    // if (pressure < 1 && nextLED >= 0 && nextLED < strip->length) {
+    //   // If we are partially into the next LED we can partially render it
+    //   strip->applyColorToLED(ledColors, nextLED, color, pressure * ageBasedProportion);
+    // }
 
 #ifdef DEBUG_RENDERING
     Serial.print("Rendering ripple position (");

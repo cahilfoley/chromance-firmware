@@ -6,6 +6,8 @@
 
 class StarburstPulses : public RippleBasedAnimation {
  public:
+  StarburstPulses() : RippleBasedAnimation("Starbursts") {}
+
   void preRender(CRGB leds[TOTAL_LEDS]) {
     RippleBasedAnimation::preRender(leds);
 
@@ -22,8 +24,8 @@ class StarburstPulses : public RippleBasedAnimation {
     for (int i = 0; i < 6; i++) {
       for (int j = 0; j < numberOfRipples; j++) {
         if (ripples[j].state == dead) {
-          ripples[j].start(lastAutoPulseNode, i, CHSV(((255 / 6) * (lastColorIndex + i)) % 255, 255, 255), .4, 1800,
-                           behavior);
+          auto color = &colors[(lastColorIndex + i) % colorCount];
+          ripples[j].start(lastAutoPulseNode, i, color, .4, 1800, behavior);
 
           break;
         }

@@ -7,7 +7,9 @@
 
 class Animation {
  public:
-  Animation() {}
+  const char* name = "Base Animation";
+
+  Animation(const char* _name) : name(_name) {}
 
   virtual byte adjustBrightness(byte brightness) { return brightness; };
   virtual void activate(){};

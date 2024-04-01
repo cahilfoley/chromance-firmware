@@ -20,8 +20,7 @@
 #endif
 
 #ifdef ENABLE_SCREEN
-#include <U8g2lib.h>
-#include <Wire.h>
+#include <DisplayManager.h>
 #endif
 
 #define US_TO_S_FACTOR 1000000 /* Conversion factor for micro seconds to seconds */
@@ -61,38 +60,23 @@ void printWakeUpReason() {
 }
 #endif
 
+static void handleClick() {
+  stateManager.selectNextAnimation();
 #ifdef ENABLE_SCREEN
-// Setting up the screen to output
-U8G2_SSD1306_128X64_NONAME_F_SW_I2C
-u8g2(U8G2_R0, 22, 21, U8X8_PIN_NONE);
-#endif
-
-static void updateDisplay() {
-#ifdef ENABLE_SCREEN
-  u8g2.clearBuffer();
-  u8g2.setFont(u8g2_font_ncenB08_tr);
-  char animationBuffer[50];
-  sprintf(animationBuffer, "A: %s", animationNames[stateManager.animation]);
-  u8g2.drawStr(5, 10, animationBuffer);
-  char brightnessBuffer[50];
-  sprintf(brightnessBuffer, "B: %d", stateManager.brightness);
-  u8g2.drawStr(5, 30, brightnessBuffer);
-#if defined(ENABLE_TIME_MANAGER) || defined(ENABLE_OTA) || defined(ENABLE_MQTT)
-  char wifiBuffer[50];
-  sprintf(wifiBuffer, "W: %s", WiFiConnection.isConnected() ? "Connected" : "Disconnected");
-  u8g2.drawStr(5, 50, wifiBuffer);
-#endif
-  u8g2.display();
+  displayManager.updateDisplay();
 #endif
 }
 
-static void handleClick() {
-  stateManager.selectNextAnimation();
-  updateDisplay();
+static void handleDoubleClick() {
+  stateManager.toggleAutoBrightness();
+#ifdef ENABLE_SCREEN
+  displayManager.updateDisplay();
+#endif
 }
 
 void backgroundLoop(void *parameter) {
   bootButton.attachClick(handleClick);
+  bootButton.attachDoubleClick(handleDoubleClick);
 
 #ifdef ENABLE_TIME_MANAGER
   timeManager.setup();
@@ -100,8 +84,7 @@ void backgroundLoop(void *parameter) {
 #endif
 
 #ifdef ENABLE_SCREEN
-  u8g2.begin();
-  updateDisplay();
+  displayManager.setup();
 #endif
 
   while (true) {
@@ -122,7 +105,9 @@ void backgroundLoop(void *parameter) {
 
     if (millis() - stateManager.lastAnimationChange >= animationChangeTime) {
       stateManager.selectNextAnimation();
-      updateDisplay();
+#ifdef ENABLE_SCREEN
+      displayManager.updateDisplay();
+#endif
     }
 
     delay(1);

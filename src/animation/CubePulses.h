@@ -7,6 +7,8 @@
 
 class CubePulses : public RippleBasedAnimation {
  public:
+  CubePulses() : RippleBasedAnimation("Cube Pulses") {}
+
   void preRender(CRGB leds[TOTAL_LEDS]) {
     RippleBasedAnimation::preRender(leds);
     unsigned long now = millis();
@@ -14,7 +16,7 @@ class CubePulses : public RippleBasedAnimation {
 
     lastRandomPulse = now;
     lastColorIndex = (lastColorIndex + 1) % colorCount;
-    CRGB baseColor = colors[lastColorIndex];
+    auto baseColor = &colors[lastColorIndex];
 
     byte loopProtection = 0;
     auto node = &graph.nodes[cubeNodes[random8(numberOfCubeNodes)]];

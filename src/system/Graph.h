@@ -57,6 +57,14 @@ struct LEDCoordinate {
   int globalIndex;
 };
 
+void printColor(const CRGB *color) {
+  Serial.print(color->r);
+  Serial.print(", ");
+  Serial.print(color->g);
+  Serial.print(", ");
+  Serial.print(color->b);
+}
+
 class Strip {
  public:
   byte index;
@@ -101,12 +109,29 @@ class Strip {
 
   /** Merge the provided colour into the target LED weighted by the provided
    * proportion */
-  void applyColorToLED(CRGB ledColors[TOTAL_LEDS], int led, CRGB color, float proportion) {
+  void applyColorToLED(CRGB ledColors[TOTAL_LEDS], int led, const CRGB *color, float proportion) {
     auto ledCoordinate = leds[led];
     auto currentColor = &ledColors[ledCoordinate.globalIndex];
 
-    currentColor->setRGB(qadd8(currentColor->r, color.r * proportion), qadd8(currentColor->g, color.g * proportion),
-                         qadd8(currentColor->b, color.b * proportion));
+#ifdef DEBUG_COLOR_MIXING
+    Serial.print("Applying color to LED with existing color: ");
+    printColor(currentColor);
+    Serial.print(" and new color: ");
+    printColor(color);
+    Serial.print(" with proportion: ");
+    Serial.print(proportion);
+#endif
+
+    // nblend(*currentColor, *color, proportion);
+    currentColor->setRGB(qadd8(currentColor->r, float(color->r) * proportion),
+                         qadd8(currentColor->g, float(color->g) * proportion),
+                         qadd8(currentColor->b, float(color->b) * proportion));
+
+#ifdef DEBUG_COLOR_MIXING
+    Serial.print(" resulting in color: ");
+    printColor(currentColor);
+    Serial.println();
+#endif
   }
 
  private:
@@ -134,13 +159,11 @@ class Graph {
   Strip strips[STRIP_COUNT];
   Node nodes[NODE_COUNT];
   LEDCoordinate *ledCoordinates[xLimit][yLimit];
-  // Strip *stripCoords[stripRowCount][stripColumnCount];
 
   Graph() {
     // Create all of the strips
     for (int stripIndex = 0; stripIndex < STRIP_COUNT; stripIndex++) {
       strips[stripIndex] = Strip(stripIndex);
-      // stripCoords[strip.row][strip.column] = &strip;
     }
 
     // Create all of the nodes

@@ -6,6 +6,8 @@
 
 class RippleBasedAnimation : public Animation {
  public:
+  RippleBasedAnimation(const char *name) : Animation(name) {}
+
   void preRender(CRGB leds[TOTAL_LEDS]) {
     Animation::render(leds);
     for (byte i = 0; i < numberOfRipples; i++) {
