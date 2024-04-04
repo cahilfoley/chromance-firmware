@@ -3,11 +3,9 @@
 
 #include <WiFi.h>
 
-#include "secrets.h"
-
 class WiFiManager {
  public:
-  void setup() {
+  void setup(const char *wifiSSID, const char *wifiPassword) {
     Serial.begin(115200);
     WiFi.persistent(false);
     WiFi.mode(WIFI_STA);

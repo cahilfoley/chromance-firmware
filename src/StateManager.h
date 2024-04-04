@@ -2,42 +2,30 @@
 #define StateManager_h
 
 #include <Arduino.h>
-#include <TimeManager.h>
+#include <EventEmitter.h>
 
 #include <mutex>
 
 #include "config.h"
 
 #ifdef ENABLE_TIME_MANAGER
+#include <TimeManager.h>
+
 #include "time.h"
 #endif
 
+#include "animation/CubePulses.h"
+#include "animation/FlatRainbow.h"
+#include "animation/RainbowWave.h"
+#include "animation/RandomPulses.h"
+#include "animation/StarburstPulses.h"
 #include "animation/base/Animation.h"
 
-#if RANDOM_PULSES_ENABLED
-#include "animation/RandomPulses.h"
 RandomPulses randomPulses;
-#endif
-
-#if CUBE_PULSES_ENABLED
-#include "animation/CubePulses.h"
 CubePulses cubePulses;
-#endif
-
-#if RAINBOW_WAVE_ENABLED
-#include "animation/RainbowWave.h"
 RainbowWave rainbowWave;
-#endif
-
-#if STARBURST_PULSES_ENABLED
-#include "animation/StarburstPulses.h"
 StarburstPulses starburstPulses;
-#endif
-
-#if FLAT_RAINBOW_ENABLED
-#include "animation/FlatRainbow.h"
 FlatRainbow flatRainbow;
-#endif
 
 Animation* animations[] = {
 #if RANDOM_PULSES_ENABLED
@@ -67,24 +55,34 @@ const int ANIMATION_COUNT = sizeof(animations) / sizeof(animations[0]);
 
 class StateManager {
  public:
-  bool canSleep;
-  bool autoBrightness = true;
+  EventEmitter brightnessEmitter;
+  EventEmitter enabledEmitter;
+  EventEmitter autoChangeEnabledEmitter;
+  EventEmitter animationEmitter;
+
+  bool canSleep = false;
   int sleepTimeSeconds;
+
+  bool enabled;
+  bool autoChangeAnimation;
   byte brightness;
   Animation* animation;
+
   unsigned long lastAnimationChange;
 
   StateManager() {
 #ifdef ENABLE_TIME_MANAGER
     // If the system is started during the night, start with the night brightness until we confirm it's not night time
-    brightness = nightConfig.brightness;
+    setBrightness(nightConfig.brightness);
 #else
-    brightness = dayConfig.brightness;
+    setBrightness(255);
 #endif
 
-    animationIndex = 0;
-    canSleep = false;
     sleepTimeSeconds = 0;
+
+    autoChangeAnimation = true;
+    enabled = true;
+    animationIndex = 0;
     animation = animations[animationIndex];
     lastAnimationChange = millis();
     animation->activate();
@@ -93,29 +91,46 @@ class StateManager {
   void lock() { stateLock.lock(); };
   void unlock() { stateLock.unlock(); };
 
-  void toggleAutoBrightness() {
+  void setEnabled(bool newEnabled) {
     lock();
-    autoBrightness = !autoBrightness;
-#ifdef ENABLE_TIME_MANAGER
-    if (autoBrightness) {
-      // If we're toggling auto brightness on, update the brightness based on the current time
-      auto time = timeManager.getCurrentLocalTime();
-      updateBrightnessFromTime(time);
-    } else {
-      // If we're toggling auto brightness off, set the brightness to full
-      brightness = 255;
-    }
-#endif
+    enabled = newEnabled;
     unlock();
+    enabledEmitter.emit(enabled);
+  };
+
+  void setBrightness(byte newBrightness) {
+    lock();
+    brightness = newBrightness;
+    unlock();
+    brightnessEmitter.emit(brightness);
   };
 
   void selectNextAnimation() {
+    if (!autoChangeAnimation) return;
+
     lock();
     animationIndex = (animationIndex + 1) % ANIMATION_COUNT;
     animation = animations[animationIndex];
     animation->activate();
     lastAnimationChange = millis();
     unlock();
+
+    animationEmitter.emit(animation);
+  };
+
+  void setAnimation(const char* animationName) {
+    lock();
+    for (int i = 0; i < ANIMATION_COUNT; i++) {
+      if (strcmp(animationName, animations[i]->name) == 0) {
+        animationIndex = i;
+        animation = animations[animationIndex];
+        animation->activate();
+        lastAnimationChange = millis();
+        break;
+      }
+    }
+    unlock();
+    animationEmitter.emit(animation);
   };
 
 #ifdef ENABLE_TIME_MANAGER

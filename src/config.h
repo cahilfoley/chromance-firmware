@@ -2,9 +2,9 @@
 #define config_h
 
 #define ENABLE_LEDS
-#define ENABLE_TIME_MANAGER  // Connects to NTP server to get time and adjusts the brightness at night
+// #define ENABLE_TIME_MANAGER  // Connects to NTP server to get time and adjusts the brightness at night
 #define ENABLE_OTA
-// #define ENABLE_MQTT
+#define ENABLE_HOME_ASSISTANT
 #define ENABLE_SCREEN
 // #define ENABLE_BENCHMARK
 // #define ENABLE_BENCHMARK_BACKGROUND
@@ -48,7 +48,6 @@ const CRGB colors[colorCount] = {
 };
 
 // NTP configuration //
-#ifdef ENABLE_TIME_MANAGER
 const char* ntpServer = "pool.ntp.org";
 const long gmtOffset_sec = 8 * 60 * 60;  // GMT+8
 const int daylightOffset_sec = 0;
@@ -66,7 +65,5 @@ struct CycleConfig {
 
 const CycleConfig dayConfig = {255, 8, 18};  // 8am to 6pm
 const CycleConfig nightConfig = {0, 20, 6};  // 8pm to 6am
-
-#endif
 
 #endif

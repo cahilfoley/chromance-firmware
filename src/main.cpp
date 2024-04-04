@@ -4,8 +4,9 @@
 #include "StateManager.h"
 #include "background.h"
 #include "config.h"
+#include "secrets.h"
 
-#if defined(ENABLE_TIME_MANAGER) || defined(ENABLE_OTA) || defined(ENABLE_MQTT)
+#if defined(ENABLE_TIME_MANAGER) || defined(ENABLE_OTA) || defined(ENABLE_HOME_ASSISTANT)
 #include <WiFiManager.h>
 #endif
 
@@ -22,10 +23,6 @@
 
 #ifdef ENABLE_OTA
 #include <OTAManager.h>
-#endif
-
-#ifdef ENABLE_MQTT
-#include <MQTTManager.h>
 #endif
 
 #ifdef ENABLE_TIME_MANAGER
@@ -75,16 +72,12 @@ void setup() {
   }
 #endif
 
-#if defined(ENABLE_TIME_MANAGER) || defined(ENABLE_OTA) || defined(ENABLE_MQTT)
-  wifiManager.setup();
+#if defined(ENABLE_TIME_MANAGER) || defined(ENABLE_OTA) || defined(ENABLE_HOME_ASSISTANT)
+  wifiManager.setup(wifiSSID, wifiPassword);
 #endif
 
 #ifdef ENABLE_OTA
   otaManager.setup();
-#endif
-
-#ifdef ENABLE_MQTT
-  MQTTManager.setup();
 #endif
 
   Serial.println("*** LET'S GOOOOO ***");
@@ -110,15 +103,20 @@ void loop() {
 #endif
 
 #ifdef ENABLE_LEDS
-  auto animation = stateManager.animation;
+  if (stateManager.enabled) {
+    auto animation = stateManager.animation;
 
-  animation->preRender(leds);
-  animation->render(leds);
+    animation->preRender(leds);
+    animation->render(leds);
 
-  FastLED.setBrightness(animation->adjustBrightness(stateManager.brightness));
-  FastLED.show();
+    FastLED.setBrightness(animation->adjustBrightness(stateManager.brightness));
+    FastLED.show();
 
-  animation->postRender(leds);
+    animation->postRender(leds);
+  } else {
+    FastLED.clear();
+    FastLED.show();
+  }
 #endif
 
 #ifdef ENABLE_BENCHMARK

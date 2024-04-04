@@ -6,6 +6,7 @@
 
 #include "StateManager.h"
 #include "config.h"
+#include "secrets.h"
 
 #if defined(ENABLE_TIME_MANAGER) || defined(ENABLE_OTA) || defined(ENABLE_MQTT)
 #include <WiFiManager.h>
@@ -21,6 +22,10 @@
 
 #ifdef ENABLE_SCREEN
 #include <DisplayManager.h>
+#endif
+
+#ifdef ENABLE_HOME_ASSISTANT
+#include "managers/HAManager.h"
 #endif
 
 #define US_TO_S_FACTOR 1000000 /* Conversion factor for micro seconds to seconds */
@@ -60,23 +65,14 @@ void printWakeUpReason() {
 }
 #endif
 
-static void handleClick() {
-  stateManager.selectNextAnimation();
-#ifdef ENABLE_SCREEN
-  displayManager.updateDisplay();
-#endif
-}
-
-static void handleDoubleClick() {
-  stateManager.toggleAutoBrightness();
-#ifdef ENABLE_SCREEN
-  displayManager.updateDisplay();
-#endif
-}
+static void handleClick() { stateManager.selectNextAnimation(); }
 
 void backgroundLoop(void *parameter) {
   bootButton.attachClick(handleClick);
-  bootButton.attachDoubleClick(handleDoubleClick);
+
+#ifdef ENABLE_HOME_ASSISTANT
+  haManager.setup(mqttBroker, mqttPort, mqttUsername, mqttPassword);
+#endif
 
 #ifdef ENABLE_TIME_MANAGER
   timeManager.setup();
@@ -92,6 +88,10 @@ void backgroundLoop(void *parameter) {
     unsigned long benchmark = millis();
 #endif
 
+#ifdef ENABLE_HOME_ASSISTANT
+    haManager.loop();
+#endif
+
     bootButton.tick();
 
 #ifdef ENABLE_TIME_MANAGER
@@ -105,9 +105,6 @@ void backgroundLoop(void *parameter) {
 
     if (millis() - stateManager.lastAnimationChange >= animationChangeTime) {
       stateManager.selectNextAnimation();
-#ifdef ENABLE_SCREEN
-      displayManager.updateDisplay();
-#endif
     }
 
     delay(1);
