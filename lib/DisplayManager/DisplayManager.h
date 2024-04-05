@@ -14,7 +14,7 @@ class DisplayManager {
   void setup() {
     u8g2.begin();
     u8g2.enableUTF8Print();
-    u8g2.setFont(u8g2_font_ncenB08_tr);
+    u8g2.setFont(u8g2_font_scrum_tr);
     updateDisplay();
 
     stateManager.brightnessEmitter.on<byte>([&](byte brightness) { updateDisplay(); });
@@ -38,11 +38,11 @@ class DisplayManager {
     u8g2.drawStr(5, 10, animationBuffer);
     char brightnessBuffer[50];
     sprintf(brightnessBuffer, "B: %d", stateManager.brightness);
-    u8g2.drawStr(5, 30, brightnessBuffer);
+    u8g2.drawStr(5, 25, brightnessBuffer);
 #if defined(ENABLE_TIME_MANAGER) || defined(ENABLE_OTA) || defined(ENABLE_MQTT)
     char wifiBuffer[50];
     sprintf(wifiBuffer, "W: %s", wifiManager.isConnected() ? "Connected" : "Disconnected");
-    u8g2.drawStr(5, 50, wifiBuffer);
+    u8g2.drawStr(5, 40, wifiBuffer);
 #endif
     u8g2.sendBuffer();
 #endif
