@@ -6,8 +6,7 @@
  * unless you need them!
  */
 // #define DEBUG_ADVANCEMENT  // Print debug messages about ripples' movement
-// #define DEBUG_RENDERING  // Print debug messages about translating logical to
-// actual position
+// #define DEBUG_RENDERING  // Print debug messages about translating logical to actual position
 
 #include <FastLED.h>
 
@@ -76,11 +75,13 @@ class Ripple {
 
     float timeMultiplier = fmap(timeSinceLastRender, 6, 60, 1, 10);
 
+    float previousPressure = pressure;
     pressure += fmap(float(age), 0.0, float(lifespan), speed, 0.0) * timeMultiplier;
 
     if (pressure < 1 && (state == travelingUpwards || state == travelingDownwards)) {
       // Ripple is visible but hasn't moved - render it to avoid flickering
-      renderLED(ledColors, age);
+      // Need to provide the previous pressure that we applied so we only add the difference
+      renderLED(ledColors, age, true, previousPressure);
     }
 
     while (pressure >= 1) {
@@ -361,10 +362,11 @@ class Ripple {
 
   byte rippleID;  // Used to identify this ripple in debug output
 
-  void renderLED(CRGB ledColors[TOTAL_LEDS], unsigned long age) {
+  void renderLED(CRGB ledColors[TOTAL_LEDS], unsigned long age, bool notMoved = false, float previousPressure = 1.0) {
     float ageBasedProportion = 1.0 - min(float(age) / float(lifespan), float(1.0));
 
-    strip->applyColorToLED(ledColors, ledIndex, color, ageBasedProportion);
+    strip->applyColorToLED(ledColors, ledIndex, color,
+                           ageBasedProportion * (notMoved ? (pressure - previousPressure + 0.05) : 1));
 
     // int nextLED = ledIndex + (state == travelingUpwards ? 1 : -1);
     // if (pressure < 1 && nextLED >= 0 && nextLED < strip->length) {
