@@ -6,6 +6,8 @@
 #include "config.h"
 #include "system/mapping.h"
 
+// #define ENABLE_FULL_COORDINATE_GRID
+
 class Strip;
 
 class Node {
@@ -158,7 +160,10 @@ class Graph {
  public:
   Strip strips[STRIP_COUNT];
   Node nodes[NODE_COUNT];
+
+#ifdef ENABLE_FULL_COORDINATE_GRID
   LEDCoordinate *ledCoordinates[xLimit][yLimit];
+#endif
 
   Graph() {
     // Create all of the strips
@@ -197,10 +202,12 @@ class Graph {
     for (auto &strip : strips) {
       strip.calculateLEDPositions();
 
+#ifdef ENABLE_FULL_COORDINATE_GRID
       // Populate each of the LEDs into the coordinate grid
       for (auto &led : strip.leds) {
         ledCoordinates[led.x][led.y] = &led;
       }
+#endif
     }
   }
 };
