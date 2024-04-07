@@ -7,7 +7,7 @@
 
 class CubePulses : public RippleBasedAnimation {
  public:
-  CubePulses() : RippleBasedAnimation("Cube Pulses") {}
+  CubePulses() : RippleBasedAnimation("Cube Pulses", CUBE_PULSES) {}
 
   void preRender(CRGB leds[TOTAL_LEDS]) {
     RippleBasedAnimation::preRender(leds);

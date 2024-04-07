@@ -8,7 +8,7 @@
 #include "config.h"
 #include "secrets.h"
 
-#if defined(ENABLE_TIME_MANAGER) || defined(ENABLE_OTA) || defined(ENABLE_MQTT)
+#if defined(ENABLE_TIME_MANAGER) || defined(ENABLE_OTA) || defined(ENABLE_HOME_ASSISTANT)
 #include <WiFiManager.h>
 #endif
 
@@ -65,7 +65,10 @@ void printWakeUpReason() {
 }
 #endif
 
-static void handleClick() { stateManager.selectNextAnimation(); }
+static void handleClick() {
+  Serial.println("Button clicked");
+  stateManager.selectNextAnimation();
+}
 
 void backgroundLoop(void *parameter) {
   bootButton.attachClick(handleClick);
@@ -103,7 +106,7 @@ void backgroundLoop(void *parameter) {
     }
 #endif
 
-    if (millis() - stateManager.lastAnimationChange >= animationChangeTime) {
+    if (millis() - stateManager.lastAnimationChange >= animationChangeTime && stateManager.autoChangeAnimation) {
       stateManager.selectNextAnimation();
     }
 

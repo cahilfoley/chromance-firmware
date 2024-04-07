@@ -16,6 +16,7 @@ HAMqtt mqttClient(client, haDevice);
 // "chromance" is unique ID of the light. You should define your own ID.
 HALight haLight("chromance", HALight::BrightnessFeature);
 // HASelect haSelect("chromance");
+HASwitch haSwitch("chromance-cycle");
 
 class HAManager {
  public:
@@ -25,21 +26,24 @@ class HAManager {
     haDevice.setUniqueId(mac, sizeof(mac));
     haDevice.setName("Chromance");
     haDevice.setModel("ESP32");
+    haDevice.setManufacturer("Cahil");
 
-    haLight.setName("Chromance");
-    haLight.onStateCommand(onStateCommand);
-    haLight.onBrightnessCommand(onBrightnessCommand);
+    haLight.setName("Light");
     haLight.setCurrentState(stateManager.enabled);
     haLight.setCurrentBrightness(stateManager.brightness);
-
+    haLight.onStateCommand(onStateCommand);
+    haLight.onBrightnessCommand(onBrightnessCommand);
     stateManager.enabledEmitter.on<bool>(updateState);
     stateManager.brightnessEmitter.on<byte>(updateBrightness);
-    stateManager.autoChangeEnabledEmitter.on<bool>([&](bool autoChangeEnabled) {
-      // haSelect.setEnabled(autoChangeEnabled);
-    });
+
+    haSwitch.setName("Cycle");
+    haSwitch.setIcon("mdi:autorenew");
+    haSwitch.setCurrentState(stateManager.autoChangeAnimation);
+    haSwitch.onCommand(onAutoChangeCommand);
+    stateManager.autoChangeEnabledEmitter.on<bool>(updateAutoChange);
 
     // haSelect.setName("Animation");
-    // haSelect.setOptions("Random Pulses;Cube Pulses;Flat Rainbow;Rainbow Wave;Starburst Pulses");
+    // haSelect.setOptions(animationOptions);
     // haSelect.setState(0);
     // haSelect.onCommand(onAnimationCommand);
 
@@ -50,35 +54,71 @@ class HAManager {
 
  private:
   static void onStateCommand(bool state, HALight* sender) {
-    stateManager.setEnabled(state);
-    sender->setState(stateManager.enabled);
+    Serial.print("Received state command from HA: ");
+    Serial.println(state);
+    stateManager.setEnabled(state, true);
+    sender->setState(state);
   };
+  static void updateState(bool state, bool fromHA) {
+    if (!fromHA) {
+      Serial.print("Updating state from chromance: ");
+      Serial.println(state);
+      haLight.setState(state);
+    } else {
+      Serial.print("Not sending state to HA: ");
+      Serial.println(state);
+    }
+  }
+
   static void onBrightnessCommand(byte brightness, HALight* sender) {
-    stateManager.setBrightness(brightness);
-    sender->setBrightness(stateManager.brightness);
+    Serial.print("Received brightness command from HA: ");
+    Serial.println(brightness);
+    stateManager.setBrightness(brightness, true);
+    sender->setBrightness(brightness);
   };
+  static void updateBrightness(byte brightness, bool fromHA) {
+    if (!fromHA) {
+      Serial.print("Updating brightness from chromance: ");
+      Serial.println(brightness);
+      haLight.setBrightness(brightness);
+    } else {
+      Serial.print("Not sending brightness to HA: ");
+      Serial.println(brightness);
+    }
+  }
+
+  static void onAutoChangeCommand(bool autoChange, HASwitch* sender) {
+    Serial.print("Received auto change command from HA: ");
+    Serial.println(autoChange);
+    stateManager.setAutoChangeEnabled(autoChange, true);
+    sender->setState(autoChange);
+  };
+  static void updateAutoChange(bool autoChange, bool fromHA) {
+    if (!fromHA) {
+      Serial.print("Updating auto change from chromance: ");
+      Serial.println(autoChange);
+      haSwitch.setState(autoChange);
+    } else {
+      Serial.print("Not sending auto change to HA: ");
+      Serial.println(autoChange);
+    }
+  }
+
   // static void onAnimationCommand(int8_t animation, HASelect* sender) {
   //   if (animation < 0) return;
-  //   const char* animations[] = {"Random Pulses", "Cube Pulses", "Flat Rainbow", "Rainbow Wave", "Starburst Pulses"};
-  //   stateManager.setAnimation(animations[animation]);
+  //   Serial.print("Received animation command from HA: ");
+  //   Serial.println(animation);
+  //   stateManager.setAnimation(animation, true);
   // };
-
-  static void updateState(bool state) { haLight.setState(state); }
-  static void updateBrightness(byte brightness) { haLight.setBrightness(brightness); }
-  // static void updateAnimation(char* animation) {
-  //   int8_t animationIndex = -1;
-  //   if (strcmp(animation, "Random Pulses") == 0) {
-  //     animationIndex = 0;
-  //   } else if (strcmp(animation, "Cube Pulses") == 0) {
-  //     animationIndex = 1;
-  //   } else if (strcmp(animation, "Flat Rainbow") == 0) {
-  //     animationIndex = 2;
-  //   } else if (strcmp(animation, "Rainbow Wave") == 0) {
-  //     animationIndex = 3;
-  //   } else if (strcmp(animation, "Starburst Pulses") == 0) {
-  //     animationIndex = 4;
+  // static void updateAnimation(Animation* animation, bool fromHA) {
+  //   if (!fromHA) {
+  //     Serial.print("Updating animation from chromance: ");
+  //     Serial.println(animation->name);
+  //     haSelect.setState(animation->type);
+  //   } else {
+  //     Serial.print("Not sending animation to HA: ");
+  //     Serial.println(animation->name);
   //   }
-  //   haSelect.setState(animationIndex);
   // }
 };
 

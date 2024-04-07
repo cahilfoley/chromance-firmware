@@ -6,7 +6,7 @@
 
 class RandomPulses : public RippleBasedAnimation {
  public:
-  RandomPulses() : RippleBasedAnimation("Random Pulses") {}
+  RandomPulses() : RippleBasedAnimation("Random Pulses", RANDOM_PULSES) {}
 
   void preRender(CRGB leds[TOTAL_LEDS]) {
     RippleBasedAnimation::preRender(leds);

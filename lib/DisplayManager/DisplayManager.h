@@ -17,11 +17,10 @@ class DisplayManager {
     u8g2.setFont(u8g2_font_scrum_tr);
     updateDisplay();
 
-    stateManager.brightnessEmitter.on<byte>([&](byte brightness) { updateDisplay(); });
-
-    stateManager.enabledEmitter.on<bool>([&](bool enabled) { updateDisplay(); });
-
-    stateManager.animationEmitter.on<Animation *>([&](Animation *animation) { updateDisplay(); });
+    stateManager.brightnessEmitter.on<byte>([&](byte brightness, bool fromHA) { updateDisplay(); });
+    stateManager.enabledEmitter.on<bool>([&](bool enabled, bool fromHA) { updateDisplay(); });
+    stateManager.autoChangeEnabledEmitter.on<bool>([&](bool enabled, bool fromHA) { updateDisplay(); });
+    stateManager.animationEmitter.on<Animation *>([&](Animation *animation, bool fromHA) { updateDisplay(); });
   };
 
   void showMessage(const char *message) {
@@ -36,10 +35,13 @@ class DisplayManager {
     char animationBuffer[50];
     sprintf(animationBuffer, "A: %s", stateManager.animation->name);
     u8g2.drawStr(5, 10, animationBuffer);
-    char brightnessBuffer[50];
+    char brightnessBuffer[20];
     sprintf(brightnessBuffer, "B: %d", stateManager.brightness);
     u8g2.drawStr(5, 25, brightnessBuffer);
-#if defined(ENABLE_TIME_MANAGER) || defined(ENABLE_OTA) || defined(ENABLE_MQTT)
+    char autoPlayBuffer[20];
+    sprintf(autoPlayBuffer, "AC: %s", stateManager.autoChangeAnimation ? "On" : "Off");
+    u8g2.drawStr(60, 25, autoPlayBuffer);
+#if defined(ENABLE_TIME_MANAGER) || defined(ENABLE_OTA) || defined(ENABLE_HOME_ASSISTANT)
     char wifiBuffer[50];
     sprintf(wifiBuffer, "W: %s", wifiManager.isConnected() ? "Connected" : "Disconnected");
     u8g2.drawStr(5, 40, wifiBuffer);

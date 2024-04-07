@@ -18,16 +18,22 @@
 #include "animation/FlatRainbow.h"
 #include "animation/RainbowWave.h"
 #include "animation/RandomPulses.h"
+#include "animation/StarTwinkle.h"
 #include "animation/StarburstPulses.h"
 #include "animation/base/Animation.h"
+#include "constants.h"
 
 RandomPulses randomPulses;
 CubePulses cubePulses;
 RainbowWave rainbowWave;
 StarburstPulses starburstPulses;
 FlatRainbow flatRainbow;
+StarTwinkle starTwinkle;
 
 Animation* animations[] = {
+#if STAR_TWINKLE_ENABLED
+    &starTwinkle,
+#endif
 #if RANDOM_PULSES_ENABLED
     &randomPulses,
 #endif
@@ -91,23 +97,31 @@ class StateManager {
   void lock() { stateLock.lock(); };
   void unlock() { stateLock.unlock(); };
 
-  void setEnabled(bool newEnabled) {
+  void setEnabled(bool newEnabled, bool fromHA = false) {
     lock();
     enabled = newEnabled;
     unlock();
-    enabledEmitter.emit(enabled);
+    Serial.printf("[SM] Setting enabled to %d\n", enabled);
+    enabledEmitter.emit(enabled, fromHA);
   };
 
-  void setBrightness(byte newBrightness) {
+  void setBrightness(byte newBrightness, bool fromHA = false) {
     lock();
     brightness = newBrightness;
     unlock();
-    brightnessEmitter.emit(brightness);
+    Serial.printf("[SM] Setting brightness to %d\n", brightness);
+    brightnessEmitter.emit(brightness, fromHA);
   };
 
-  void selectNextAnimation() {
-    if (!autoChangeAnimation) return;
+  void setAutoChangeEnabled(bool newAutoChangeEnabled, bool fromHA = false) {
+    lock();
+    autoChangeAnimation = newAutoChangeEnabled;
+    unlock();
+    Serial.printf("[SM] Setting auto change to %d\n", autoChangeAnimation);
+    autoChangeEnabledEmitter.emit(autoChangeAnimation, fromHA);
+  };
 
+  void selectNextAnimation(bool fromHA = false) {
     lock();
     animationIndex = (animationIndex + 1) % ANIMATION_COUNT;
     animation = animations[animationIndex];
@@ -115,13 +129,14 @@ class StateManager {
     lastAnimationChange = millis();
     unlock();
 
-    animationEmitter.emit(animation);
+    animationEmitter.emit(animation, fromHA);
   };
 
-  void setAnimation(const char* animationName) {
+  void setAnimation(int8_t animationType, bool fromHA = false) {
+    setAutoChangeEnabled(false);
     lock();
     for (int i = 0; i < ANIMATION_COUNT; i++) {
-      if (strcmp(animationName, animations[i]->name) == 0) {
+      if (animations[i]->type == animationType) {
         animationIndex = i;
         animation = animations[animationIndex];
         animation->activate();
@@ -130,7 +145,7 @@ class StateManager {
       }
     }
     unlock();
-    animationEmitter.emit(animation);
+    animationEmitter.emit(animation, fromHA);
   };
 
 #ifdef ENABLE_TIME_MANAGER

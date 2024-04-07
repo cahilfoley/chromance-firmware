@@ -8,6 +8,10 @@
 
 // #define ENABLE_FULL_COORDINATE_GRID
 
+#ifdef ENABLE_LEDS
+CRGB leds[TOTAL_LEDS];  // LED buffer - each ripple writes to this
+#endif
+
 class Strip;
 
 class Node {
@@ -75,7 +79,7 @@ class Strip {
   byte row;
   byte column;
   StripOrientation orientation;
-  LEDCoordinate leds[STRIP_LED_COUNT];
+  LEDCoordinate ledCoordinates[STRIP_LED_COUNT];
   int channelLEDOffset;
   int channelOffset;
   int channelLength;
@@ -105,14 +109,14 @@ class Strip {
       auto coordinate = getLEDCoordinates(i);
       /** Get the global LED index for a given index on the strip, this is the position in the `leds` array. */
       int ledIndex = map(i, 0, length - 1, stripEndLED, stripStartLED);
-      leds[i] = {coordinate.x, coordinate.y, ledIndex};
+      ledCoordinates[i] = {coordinate.x, coordinate.y, ledIndex};
     }
   }
 
   /** Merge the provided colour into the target LED weighted by the provided
    * proportion */
   void applyColorToLED(CRGB ledColors[TOTAL_LEDS], int led, const CRGB *color, float proportion) {
-    auto ledCoordinate = leds[led];
+    auto ledCoordinate = ledCoordinates[led];
     auto currentColor = &ledColors[ledCoordinate.globalIndex];
 
 #ifdef DEBUG_COLOR_MIXING

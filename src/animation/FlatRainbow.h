@@ -6,7 +6,7 @@
 
 class FlatRainbow : public Animation {
  public:
-  FlatRainbow() : Animation("Flat Rainbow") {}
+  FlatRainbow() : Animation("Flat Rainbow", FLAT_RAINBOW) {}
 
   void activate() { lastActivationTime = millis(); }
 

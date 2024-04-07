@@ -6,7 +6,7 @@
 
 class StarburstPulses : public RippleBasedAnimation {
  public:
-  StarburstPulses() : RippleBasedAnimation("Starbursts") {}
+  StarburstPulses() : RippleBasedAnimation("Starbursts", STARBURST_PULSES) {}
 
   void preRender(CRGB leds[TOTAL_LEDS]) {
     RippleBasedAnimation::preRender(leds);

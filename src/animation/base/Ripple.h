@@ -11,6 +11,7 @@
 #include <FastLED.h>
 
 #include "config.h"
+#include "helpers.h"
 #include "system/Graph.h"
 #include "system/mapping.h"
 
@@ -23,10 +24,6 @@ enum rippleState {
 };
 
 enum RippleBehavior { weaksauce = 0, feisty = 1, angry = 2, alwaysTurnsRight = 3, alwaysTurnsLeft = 4 };
-
-float fmap(float x, float in_min, float in_max, float out_min, float out_max) {
-  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-}
 
 class Ripple {
  public:

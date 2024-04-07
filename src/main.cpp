@@ -50,11 +50,6 @@ void goToSleep() {
 // A reference to the background thread
 TaskHandle_t backgroundTask;
 
-// Setup LEDs and animations
-#ifdef ENABLE_LEDS
-CRGB leds[TOTAL_LEDS];  // LED buffer - each ripple writes to this
-#endif
-
 void setup() {
   Serial.begin(115200);
 
@@ -82,7 +77,7 @@ void setup() {
 
   Serial.println("*** LET'S GOOOOO ***");
 
-  xTaskCreatePinnedToCore(backgroundLoop, "backgroundLoop", 10000, NULL, 1, &backgroundTask, 0);  // Core 0
+  xTaskCreatePinnedToCore(backgroundLoop, "backgroundLoop", 10000, NULL, 1, &backgroundTask, 0);
 
   stateManager.lastAnimationChange = millis();
 }
@@ -114,8 +109,7 @@ void loop() {
 
     animation->postRender(leds);
   } else {
-    FastLED.clear();
-    FastLED.show();
+    FastLED.clear(true);
   }
 #endif
 

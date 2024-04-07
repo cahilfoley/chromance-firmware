@@ -12,8 +12,9 @@ class RainbowWave : public Animation {
   WaveDirection direction;
   bool autoChangeDirection;
 
-  RainbowWave() : Animation("Rainbow Wave"), direction(horizontalScroll), autoChangeDirection(true) {}
-  RainbowWave(WaveDirection direction) : Animation("Rainbow Wave"), direction(direction), autoChangeDirection(false) {}
+  RainbowWave() : Animation("Rainbow Wave", RAINBOW_WAVE), direction(horizontalScroll), autoChangeDirection(true) {}
+  RainbowWave(WaveDirection direction)
+      : Animation("Rainbow Wave", RAINBOW_WAVE), direction(direction), autoChangeDirection(false) {}
 
   void activate() {
     if (autoChangeDirection) {
@@ -43,7 +44,7 @@ class RainbowWave : public Animation {
     int hueShift = map(animationDuration, 0, animationChangeTime, direction == circularWave ? 2500 : 500, 0);
 
     for (auto &strip : graph.strips) {
-      for (auto &led : strip.leds) {
+      for (auto &led : strip.ledCoordinates) {
         int baseHue = 0;
         if (direction == horizontalScroll) {
           baseHue = map(led.x + hueShift, 0, xLimit, 0, 255);

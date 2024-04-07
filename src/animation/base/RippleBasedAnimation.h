@@ -1,25 +1,20 @@
 #ifndef RippleBasedAnimation_h
 #define RippleBasedAnimation_h
 
-#include "animation/base/Animation.h"
+#include "animation/base/FadingAnimation.h"
 #include "animation/base/Ripple.h"
 
-class RippleBasedAnimation : public Animation {
+class RippleBasedAnimation : public FadingAnimation {
  public:
-  RippleBasedAnimation(const char *name) : Animation(name) {}
+  RippleBasedAnimation(const char *name, const AnimationType type) : FadingAnimation(name, type, 2) {}
 
   void preRender(CRGB leds[TOTAL_LEDS]) {
-    Animation::render(leds);
+    FadingAnimation::preRender(leds);
     for (byte i = 0; i < numberOfRipples; i++) {
       if (ripples[i].state != dead) {
         ripples[i].advance(leds);
       }
     }
-  };
-
-  void postRender(CRGB leds[TOTAL_LEDS]) {
-    Animation::postRender(leds);
-    fadeToBlackBy(leds, TOTAL_LEDS, 2);
   };
 };
 
