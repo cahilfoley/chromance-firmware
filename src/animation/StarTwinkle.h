@@ -1,7 +1,7 @@
 #ifndef StarTwinkle_h
 #define StarTwinkle_h
 
-#include "animation/base/Animation.h"
+#include "animation/base/FadingAnimation.h"
 #include "config.h"
 #include "helpers.h"
 #include "system/Graph.h"
@@ -19,19 +19,36 @@ struct Star {
   Strip *strip;
 };
 
-class StarTwinkle : public Animation {
+// The distance from the end of each strip that a star cannot be placed to prevent clashing with the next strip
+#define STAR_STRIP_END_BUFFER 1
+
+// The rates at which stars will grow and fade
+#define STAR_GROWTH_RATE 0.00025
+#define STAR_DECAY_RATE 0.00025
+
+// The max delay between a star fading out and being reactivated
+#define STAR_REACTIVATION_MAX_DELAY 10000
+
+// The max delay between a star reaching full brightness and starting to fade out
+#define STAR_DECAY_MAX_DELAY 100
+
+// The min and max range that a star's target brightness will be generated between
+#define STAR_MIN_TARGET_BRIGHTNESS 50
+#define STAR_MAX_TARGET_BRIGHTNESS 200
+
+class StarTwinkle : public FadingAnimation {
  public:
-  StarTwinkle() : Animation("Star Twinkle", STAR_TWINKLE) {}
+  StarTwinkle() : FadingAnimation("Star Twinkle", STAR_TWINKLE, 2) {}
 
   void activate() {
-    Animation::activate();
+    FadingAnimation::activate();
 
     for (byte i = 0; i < numberOfStars; i++) {
       uint16_t index = random16(TOTAL_LEDS);
-      byte targetBrightness = random16(100, 255);
+      byte targetBrightness = random16(STAR_MIN_TARGET_BRIGHTNESS, STAR_MAX_TARGET_BRIGHTNESS);
       byte stripIndex = i % STRIP_COUNT;
-      byte pixelIndex = random8(3, STRIP_LED_COUNT - 3);
-      int delay = random16(10000);
+      byte pixelIndex = random8(STAR_STRIP_END_BUFFER, STRIP_LED_COUNT - STAR_STRIP_END_BUFFER);
+      int delay = random16(STAR_REACTIVATION_MAX_DELAY);
       stars[i] = {pixelIndex, 0, targetBrightness, delay, starGrowing, &graph.strips[stripIndex]};
     }
 
@@ -39,7 +56,7 @@ class StarTwinkle : public Animation {
   }
 
   void preRender(CRGB leds[TOTAL_LEDS]) {
-    Animation::preRender(leds);
+    FadingAnimation::preRender(leds);
     unsigned long now = millis();
     unsigned long timeSinceLastRender = now - lastRender;
 
@@ -50,9 +67,9 @@ class StarTwinkle : public Animation {
             stars[i].delay -= timeSinceLastRender;
           } else if (stars[i].progress >= 1) {
             stars[i].state = starFading;
-            stars[i].delay = random16(1000);
+            stars[i].delay = random16(STAR_DECAY_MAX_DELAY);
           } else {
-            stars[i].progress = min(stars[i].progress + timeSinceLastRender * 0.00025, 1.0);
+            stars[i].progress = min(stars[i].progress + timeSinceLastRender * STAR_GROWTH_RATE, 1.0);
           }
           break;
 
@@ -62,24 +79,25 @@ class StarTwinkle : public Animation {
           } else if (stars[i].progress <= 0) {
             stars[i].state = starDead;
           } else {
-            stars[i].progress = max(stars[i].progress - timeSinceLastRender * 0.00025, 0.0);
+            stars[i].progress = max(stars[i].progress - timeSinceLastRender * STAR_DECAY_RATE, 0.0);
           }
           break;
 
         case starDead:
           stars[i].state = starGrowing;
-          stars[i].delay = random16(7500);
-          stars[i].index = random8(3, STRIP_LED_COUNT - 3);
+          stars[i].delay = random16(STAR_REACTIVATION_MAX_DELAY);
+          stars[i].index = random8(STAR_STRIP_END_BUFFER, STRIP_LED_COUNT - STAR_STRIP_END_BUFFER);
           break;
       }
     }
   }
 
   void render(CRGB leds[TOTAL_LEDS]) {
-    Animation::render(leds);
+    FadingAnimation::render(leds);
     unsigned long now = millis();
 
     for (auto &star : stars) {
+      // Set the brightness of the star based on its progress, clamped to the target brightness
       byte value = round(fmap(fmin(fmax(star.progress, 0.0), 1.0), 0.0, 1.0, 0, star.targetBrightness));
       leds[star.strip->ledCoordinates[star.index].globalIndex].setRGB(value, value, value);
     }
