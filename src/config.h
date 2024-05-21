@@ -2,10 +2,10 @@
 #define config_h
 
 #define ENABLE_LEDS
-// #define ENABLE_TIME_MANAGER  // Connects to NTP server to get time and adjusts the brightness at night
+#define ENABLE_TIME_MANAGER  // Connects to NTP server to get time and adjusts the brightness at night
 // #define ENABLE_OTA
-#define ENABLE_HOME_ASSISTANT
-#define ENABLE_SCREEN
+// #define ENABLE_HOME_ASSISTANT
+// #define ENABLE_SCREEN
 // #define ENABLE_BENCHMARK
 // #define ENABLE_BENCHMARK_BACKGROUND
 // #define WAIT_FOR_SERIAL
@@ -64,7 +64,7 @@ struct CycleConfig {
   byte end;
 };
 
-const CycleConfig dayConfig = {255, 8, 18};  // 8am to 6pm
-const CycleConfig nightConfig = {0, 20, 6};  // 8pm to 6am
+const CycleConfig dayConfig = {255, 10, 18};  // 10am to 6pm
+const CycleConfig nightConfig = {50, 21, 7};  // 9pm to 7am
 
 #endif

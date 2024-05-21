@@ -73,10 +73,6 @@ static void handleClick() {
 void backgroundLoop(void *parameter) {
   bootButton.attachClick(handleClick);
 
-#ifdef ENABLE_HOME_ASSISTANT
-  haManager.setup(mqttBroker, mqttPort, mqttUsername, mqttPassword);
-#endif
-
 #ifdef ENABLE_TIME_MANAGER
   timeManager.setup();
   printWakeUpReason();
@@ -89,10 +85,6 @@ void backgroundLoop(void *parameter) {
   while (true) {
 #ifdef ENABLE_BENCHMARK_BACKGROUND
     unsigned long benchmark = millis();
-#endif
-
-#ifdef ENABLE_HOME_ASSISTANT
-    haManager.loop();
 #endif
 
     bootButton.tick();

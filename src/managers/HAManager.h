@@ -14,7 +14,7 @@ HAMqtt mqttClient(client, haDevice);
 // HALight::ColorTemperatureFeature enables support for setting color temperature of the light.
 // Both features are optional and you can remove them if they're not needed.
 // "chromance" is unique ID of the light. You should define your own ID.
-HALight haLight("chromance", HALight::BrightnessFeature);
+HALight haLight("chromance-light", HALight::BrightnessFeature);
 // HASelect haSelect("chromance");
 HASwitch haSwitch("chromance-cycle");
 

@@ -31,7 +31,9 @@ void goToSleep() {
   Serial.print("Going to sleep for ");
   Serial.print(sleepSeconds);
   Serial.println(" seconds");
+#ifdef ENABLE_DISPLAY
   displayManager.showMessage("Sleeping...");
+#endif
 
   wifiManager.disconnect();
 #ifdef ENABLE_LEDS
@@ -51,13 +53,16 @@ void goToSleep() {
 TaskHandle_t backgroundTask;
 
 void setup() {
+  disableCore0WDT();
+  disableCore1WDT();
+
   Serial.begin(115200);
 
 #ifdef ENABLE_LEDS
-  FastLED.addLeds<DOTSTAR, 5, 18, BGR>(leds, channelOffsets[0], lengths[0]).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<DOTSTAR, 19, 26, BGR>(leds, channelOffsets[1], lengths[1]).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<DOTSTAR, 25, 33, BGR>(leds, channelOffsets[2], lengths[2]).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<DOTSTAR, 32, 23, BGR>(leds, channelOffsets[3], lengths[3]).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<DOTSTAR, 13, 12, BGR>(leds, channelOffsets[0], lengths[0]).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<DOTSTAR, 14, 27, BGR>(leds, channelOffsets[1], lengths[1]).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<DOTSTAR, 26, 25, BGR>(leds, channelOffsets[2], lengths[2]).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<DOTSTAR, 33, 32, BGR>(leds, channelOffsets[3], lengths[3]).setCorrection(TypicalLEDStrip);
   FastLED.clear();
 #endif
 
@@ -69,6 +74,10 @@ void setup() {
 
 #if defined(ENABLE_TIME_MANAGER) || defined(ENABLE_OTA) || defined(ENABLE_HOME_ASSISTANT)
   wifiManager.setup(wifiSSID, wifiPassword);
+#endif
+
+#ifdef ENABLE_HOME_ASSISTANT
+  haManager.setup(mqttBroker, mqttPort, mqttUsername, mqttPassword);
 #endif
 
 #ifdef ENABLE_OTA
@@ -91,6 +100,10 @@ void loop() {
   if (stateManager.canSleep) {
     goToSleep();
   }
+#endif
+
+#ifdef ENABLE_HOME_ASSISTANT
+  haManager.loop();
 #endif
 
 #ifdef ENABLE_OTA

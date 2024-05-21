@@ -150,8 +150,6 @@ class StateManager {
 
 #ifdef ENABLE_TIME_MANAGER
   void updateBrightnessFromTime(struct tm time) {
-    if (!autoBrightness) return;
-
     lock();
     // If it's between the night start and end apply the night brightness
     if (time.tm_hour >= nightConfig.start || time.tm_hour <= nightConfig.end) {
