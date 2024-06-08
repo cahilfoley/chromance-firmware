@@ -99,7 +99,8 @@ class StarTwinkle : public FadingAnimation {
     for (auto &star : stars) {
       // Set the brightness of the star based on its progress, clamped to the target brightness
       byte value = round(fmap(fmin(fmax(star.progress, 0.0), 1.0), 0.0, 1.0, 0, star.targetBrightness));
-      leds[star.strip->ledCoordinates[star.index].globalIndex].setRGB(value, value, value);
+      leds[star.strip->ledCoordinates[star.index].globalIndex].setRGB(
+          map(value, 0, 255, 0, starRGB[0]), map(value, 0, 255, 0, starRGB[1]), map(value, 0, 255, 0, starRGB[2]));
     }
 
     lastRender = now;

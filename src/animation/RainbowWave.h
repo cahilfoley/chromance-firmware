@@ -18,7 +18,7 @@ class RainbowWave : public Animation {
 
   void activate() {
     if (autoChangeDirection) {
-      direction = static_cast<WaveDirection>(random(NUMBERS_OF_WAVE_DIRECTIONS));
+      direction = static_cast<WaveDirection>((direction + 1) % NUMBERS_OF_WAVE_DIRECTIONS);
     }
 
     lastActivationTime = millis();
@@ -58,10 +58,17 @@ class RainbowWave : public Animation {
         } else if (direction == pinWheelWave) {
           int dx = graph.nodes[starburstNode].x - led.x;
           int dy = graph.nodes[starburstNode].y - led.y;
-          baseHue = map(atan2(dy, dx) * 180 / PI + hueShift, 0, 360, 0, 255);
+          int distanceFromCenter = sqrt(dx * dx + dy * dy);
+          baseHue = map(atan2(dy, dx) * 180 / PI + hueShift + distanceFromCenter, 0, 360, 0, 255);
         }
 
+#ifdef FIXED_COLOR_MODE
+        float sineWave = sin((baseHue + hueShift) * 3.0 / 255.0);
+        int purpleHue = fmap(sineWave, -1, 1, rainbowStartHue, rainbowEndHue);
+        leds[led.globalIndex] = CHSV(purpleHue, 255, value);
+#else
         leds[led.globalIndex] = CHSV((baseHue + hueShift) % 255, 255, value);
+#endif
       }
     }
   };

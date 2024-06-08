@@ -1,3 +1,6 @@
+#include "config.h"
+#ifdef ENABLE_HOME_ASSISTANT
+
 #ifndef HAManager_h
 #define HAManager_h
 
@@ -124,4 +127,5 @@ class HAManager {
 
 HAManager haManager;
 
+#endif
 #endif

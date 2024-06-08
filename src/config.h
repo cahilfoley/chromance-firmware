@@ -2,13 +2,14 @@
 #define config_h
 
 #define ENABLE_LEDS
-#define ENABLE_TIME_MANAGER  // Connects to NTP server to get time and adjusts the brightness at night
-// #define ENABLE_OTA
-// #define ENABLE_HOME_ASSISTANT
+// #define ENABLE_TIME_MANAGER  // Connects to NTP server to get time and adjusts the brightness at night
+#define ENABLE_OTA
+#define ENABLE_HOME_ASSISTANT
 // #define ENABLE_SCREEN
 // #define ENABLE_BENCHMARK
 // #define ENABLE_BENCHMARK_BACKGROUND
 // #define WAIT_FOR_SERIAL
+// #define FIXED_COLOR_MODE
 
 #include <FastLED.h>
 
@@ -39,6 +40,15 @@ const int randomPulseInterval = 2000;
 
 // Color configuration //
 const byte colorCount = 6;
+#ifdef FIXED_COLOR_MODE
+const CRGB colors[colorCount] = {
+    CRGB(200, 0, 255), CRGB(255, 0, 200), CRGB(220, 0, 255),
+    CRGB(255, 0, 220), CRGB(220, 0, 220), CRGB(255, 0, 255)  // Magenta
+};
+const byte rainbowStartHue = 210;
+const byte rainbowEndHue = 240;
+const byte starRGB[3] = {255, 0, 255};
+#else
 const CRGB colors[colorCount] = {
     CRGB(255, 0, 0),    // Red
     CRGB(255, 255, 0),  // Yellow
@@ -47,6 +57,10 @@ const CRGB colors[colorCount] = {
     CRGB(0, 0, 255),    // Blue
     CRGB(255, 0, 255)   // Magenta
 };
+const byte rainbowStartHue = 0;
+const byte rainbowEndHue = 255;
+const byte starRGB[3] = {255, 255, 255};
+#endif
 
 // NTP configuration //
 const char* ntpServer = "pool.ntp.org";
