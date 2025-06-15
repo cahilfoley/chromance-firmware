@@ -2,7 +2,7 @@
 #define config_h
 
 #define ENABLE_LEDS
-// #define ENABLE_TIME_MANAGER  // Connects to NTP server to get time and adjusts the brightness at night
+#define ENABLE_TIME_MANAGER  // Connects to NTP server to get time and adjusts the brightness at night
 #define ENABLE_OTA
 #define ENABLE_HOME_ASSISTANT
 // #define ENABLE_SCREEN
@@ -34,6 +34,7 @@ const int animationChangeTime = 30000;
 #define STARBURST_PULSES_ENABLED true  // Draw starbursts
 #define FLAT_RAINBOW_ENABLED false     // Draw a flat colour that cycles through the rainbow
 #define STAR_TWINKLE_ENABLED true      // Draw twinkling stars
+#define READING_MODE_ENABLED true      // Set all LEDs to warm white for reading
 
 /** For random pulse animations, the duration between pulses */
 const int randomPulseInterval = 2000;

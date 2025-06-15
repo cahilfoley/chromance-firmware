@@ -18,7 +18,7 @@ HAMqtt mqttClient(client, haDevice);
 // Both features are optional and you can remove them if they're not needed.
 // "chromance" is unique ID of the light. You should define your own ID.
 HALight haLight("chromance-light", HALight::BrightnessFeature);
-// HASelect haSelect("chromance");
+HASelect haSelect("chromance-animation");
 HASwitch haSwitch("chromance-cycle");
 
 class HAManager {
@@ -30,6 +30,8 @@ class HAManager {
     haDevice.setName("Chromance");
     haDevice.setModel("ESP32");
     haDevice.setManufacturer("Cahil");
+    haDevice.enableSharedAvailability();
+    haDevice.enableLastWill();
 
     haLight.setName("Light");
     haLight.setCurrentState(stateManager.enabled);
@@ -45,10 +47,11 @@ class HAManager {
     haSwitch.onCommand(onAutoChangeCommand);
     stateManager.autoChangeEnabledEmitter.on<bool>(updateAutoChange);
 
-    // haSelect.setName("Animation");
-    // haSelect.setOptions(animationOptions);
-    // haSelect.setState(0);
-    // haSelect.onCommand(onAnimationCommand);
+    haSelect.setName("Animation");
+    haSelect.setOptions(animationOptions);
+    haSelect.setState(stateManager.animation->type);
+    haSelect.onCommand(onAnimationCommand);
+    stateManager.animationEmitter.on<Animation*>(updateAnimation);
 
     mqttClient.begin(mqttBroker, mqttPort, mqttUsername, mqttPassword);
   };
@@ -107,22 +110,23 @@ class HAManager {
     }
   }
 
-  // static void onAnimationCommand(int8_t animation, HASelect* sender) {
-  //   if (animation < 0) return;
-  //   Serial.print("Received animation command from HA: ");
-  //   Serial.println(animation);
-  //   stateManager.setAnimation(animation, true);
-  // };
-  // static void updateAnimation(Animation* animation, bool fromHA) {
-  //   if (!fromHA) {
-  //     Serial.print("Updating animation from chromance: ");
-  //     Serial.println(animation->name);
-  //     haSelect.setState(animation->type);
-  //   } else {
-  //     Serial.print("Not sending animation to HA: ");
-  //     Serial.println(animation->name);
-  //   }
-  // }
+  static void onAnimationCommand(int8_t animation, HASelect* sender) {
+    if (animation < 0) return;
+    Serial.print("Received animation command from HA: ");
+    Serial.println(animation);
+    stateManager.setAnimation(animation, true);
+  };
+
+  static void updateAnimation(Animation* animation, bool fromHA) {
+    if (!fromHA) {
+      Serial.print("Updating animation from chromance: ");
+      Serial.println(animation->name);
+      haSelect.setState(animation->type);
+    } else {
+      Serial.print("Not sending animation to HA: ");
+      Serial.println(animation->name);
+    }
+  }
 };
 
 HAManager haManager;

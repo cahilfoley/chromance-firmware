@@ -92,7 +92,7 @@ class StarTwinkle : public FadingAnimation {
     }
   }
 
-  void render(CRGB leds[TOTAL_LEDS]) {
+  bool render(CRGB leds[TOTAL_LEDS]) {
     FadingAnimation::render(leds);
     unsigned long now = millis();
 
@@ -104,6 +104,8 @@ class StarTwinkle : public FadingAnimation {
     }
 
     lastRender = now;
+
+    return true;  // Always return true to indicate that the LEDs need updating
   };
 
  private:

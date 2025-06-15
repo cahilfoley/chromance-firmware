@@ -1,11 +1,13 @@
 #ifndef DisplayManager_h
 #define DisplayManager_h
 
+#include "config.h"
+
+#ifdef ENABLE_SCREEN
 #include <U8g2lib.h>
 
 #include "StateManager.h"
 #include "WifiManager.h"
-#include "config.h"
 
 U8G2_SSD1306_128X64_NONAME_F_SW_I2C u8g2(U8G2_R2, 22, 21, U8X8_PIN_NONE);
 
@@ -47,10 +49,11 @@ class DisplayManager {
     u8g2.drawStr(5, 40, wifiBuffer);
 #endif
     u8g2.sendBuffer();
-#endif
+#endif };
   };
-};
 
-DisplayManager displayManager;
+#ifdef ENABLE_SCREEN
+  DisplayManager displayManager;
+#endif
 
 #endif

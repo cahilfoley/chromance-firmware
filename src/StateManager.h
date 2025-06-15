@@ -18,6 +18,7 @@
 #include "animation/FlatRainbow.h"
 #include "animation/RainbowWave.h"
 #include "animation/RandomPulses.h"
+#include "animation/ReadingMode.h"
 #include "animation/StarTwinkle.h"
 #include "animation/StarburstPulses.h"
 #include "animation/base/Animation.h"
@@ -29,6 +30,7 @@ RainbowWave rainbowWave;
 StarburstPulses starburstPulses;
 FlatRainbow flatRainbow;
 StarTwinkle starTwinkle;
+ReadingMode readingMode;
 
 Animation* animations[] = {
 #if STAR_TWINKLE_ENABLED
@@ -54,6 +56,9 @@ Animation* animations[] = {
 #endif
 #if FLAT_RAINBOW_ENABLED
     &flatRainbow,
+#endif
+#if READING_MODE_ENABLED
+    &readingMode,
 #endif
 };
 
@@ -120,10 +125,12 @@ class StateManager {
     Serial.printf("[SM] Setting auto change to %d\n", autoChangeAnimation);
     autoChangeEnabledEmitter.emit(autoChangeAnimation, fromHA);
   };
-
   void selectNextAnimation(bool fromHA = false) {
     lock();
-    animationIndex = (animationIndex + 1) % ANIMATION_COUNT;
+    do {
+      animationIndex = (animationIndex + 1) % ANIMATION_COUNT;
+    } while (!fromHA && !animations[animationIndex]->includeInAutoCycle);
+
     animation = animations[animationIndex];
     animation->activate();
     lastAnimationChange = millis();

@@ -26,7 +26,7 @@ class RainbowWave : public Animation {
     maxDistanceFromCenter = sqrt(centerNode->x * centerNode->x + centerNode->y * centerNode->y);
   }
 
-  void render(CRGB leds[TOTAL_LEDS]) {
+  bool render(CRGB leds[TOTAL_LEDS]) {
     Animation::render(leds);
     unsigned long now = millis();
 
@@ -71,6 +71,8 @@ class RainbowWave : public Animation {
 #endif
       }
     }
+
+    return true;
   };
 
  private:

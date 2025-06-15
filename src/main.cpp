@@ -13,9 +13,13 @@
 #ifdef ENABLE_LEDS
 #include <FastLED.h>
 
+// Include all required animations
 #include "animation/CubePulses.h"
 #include "animation/FlatRainbow.h"
+#include "animation/RainbowWave.h"
 #include "animation/RandomPulses.h"
+#include "animation/ReadingMode.h"
+#include "animation/StarTwinkle.h"
 #include "animation/StarburstPulses.h"
 #include "animation/base/Ripple.h"
 #include "system/Graph.h"
@@ -27,11 +31,12 @@
 
 #ifdef ENABLE_TIME_MANAGER
 void goToSleep() {
-  int sleepSeconds = min(abs(stateManager.sleepTimeSeconds), 60 * 60);  // Cap sleep time at 1 hour
+  int sleepSeconds =
+      max(min(abs(stateManager.sleepTimeSeconds), 60 * 60), 30);  // Cap sleep time between 30 secs and 1 hour
   Serial.print("Going to sleep for ");
   Serial.print(sleepSeconds);
   Serial.println(" seconds");
-#ifdef ENABLE_DISPLAY
+#ifdef ENABLE_SCREEN
   displayManager.showMessage("Sleeping...");
 #endif
 
@@ -84,7 +89,16 @@ void setup() {
   otaManager.setup();
 #endif
 
+#ifdef DEVELOPMENT_BUILD
+  Serial.println("*** DEVELOPMENT BUILD ***");
+  Serial.println("Development build provides enhanced debugging information");
+  Serial.print("Free heap: ");
+  Serial.println(ESP.getFreeHeap());
+  Serial.print("Available animations: ");
+  Serial.println(ANIMATION_COUNT);
+#else
   Serial.println("*** LET'S GOOOOO ***");
+#endif
 
   xTaskCreatePinnedToCore(backgroundLoop, "backgroundLoop", 10000, NULL, 1, &backgroundTask, 0);
 
@@ -114,15 +128,49 @@ void loop() {
   if (stateManager.enabled) {
     auto animation = stateManager.animation;
 
-    animation->preRender(leds);
-    animation->render(leds);
+    // Track the last brightness to detect changes
+    static byte lastBrightness = stateManager.brightness;
+    bool brightnessChanged = (lastBrightness != stateManager.brightness);
+    lastBrightness = stateManager.brightness;
 
-    FastLED.setBrightness(animation->adjustBrightness(stateManager.brightness));
-    FastLED.show();
+#ifdef DEVELOPMENT_BUILD
+    // In development mode, add some basic performance monitoring
+    unsigned long renderStart = millis();
+#endif
+
+    animation->preRender(leds);
+    bool needsUpdate = animation->render(leds);
+
+    // Update LEDs if animation needs update OR if brightness has changed
+    if (needsUpdate || brightnessChanged) {
+      FastLED.setBrightness(animation->adjustBrightness(stateManager.brightness));
+      FastLED.show();
+
+#ifdef DEVELOPMENT_BUILD
+      if (brightnessChanged && !needsUpdate) {
+        Serial.println("Updating LEDs due to brightness change only");
+      }
+#endif
+    }
 
     animation->postRender(leds);
+
+#ifdef DEVELOPMENT_BUILD
+    // Only log timing in development builds
+    unsigned long renderTime = millis() - renderStart;
+    // Log render time every second to avoid flooding Serial
+    static unsigned long lastRenderLog = 0;
+    if (millis() - lastRenderLog > 1000) {
+      Serial.print("Animation render time (ms): ");
+      Serial.println(renderTime);
+      Serial.print("Current animation: ");
+      Serial.println(animation->name);
+      lastRenderLog = millis();
+    }
+#endif
   } else {
     FastLED.clear(true);
+    delay(50);
   }
 #endif
 

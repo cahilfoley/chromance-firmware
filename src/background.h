@@ -32,7 +32,6 @@
 
 OneButton bootButton = OneButton(0, true, true);
 
-#ifdef ENABLE_TIME_MANAGER
 const unsigned long timeCheckInterval = 60000;
 unsigned long nextTimeCheck = 0;
 
@@ -63,11 +62,11 @@ void printWakeUpReason() {
       break;
   }
 }
-#endif
 
 static void handleClick() {
   Serial.println("Button clicked");
-  stateManager.selectNextAnimation();
+  // Button clicks should still cycle through all animations, including Reading Mode
+  stateManager.selectNextAnimation(true);
 }
 
 void backgroundLoop(void *parameter) {
@@ -75,8 +74,8 @@ void backgroundLoop(void *parameter) {
 
 #ifdef ENABLE_TIME_MANAGER
   timeManager.setup();
-  printWakeUpReason();
 #endif
+  printWakeUpReason();
 
 #ifdef ENABLE_SCREEN
   displayManager.setup();
@@ -93,7 +92,9 @@ void backgroundLoop(void *parameter) {
     unsigned long now = millis();
     if (now >= nextTimeCheck) {
       auto time = timeManager.getCurrentLocalTime();
+#if !defined(ENABLE_HOME_ASSISTANT)
       stateManager.updateBrightnessFromTime(time);
+#endif
       nextTimeCheck = now + timeCheckInterval;
     }
 #endif

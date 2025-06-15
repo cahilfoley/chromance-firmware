@@ -10,7 +10,7 @@ class FlatRainbow : public Animation {
 
   void activate() { lastActivationTime = millis(); }
 
-  void render(CRGB leds[TOTAL_LEDS]) {
+  bool render(CRGB leds[TOTAL_LEDS]) {
     Animation::render(leds);
     unsigned long now = millis();
 
@@ -30,6 +30,8 @@ class FlatRainbow : public Animation {
     for (int i = 0; i < TOTAL_LEDS; i++) {
       leds[i] = CHSV(hue, 255, value);
     }
+
+    return true;
   };
 
  private:
