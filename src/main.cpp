@@ -64,10 +64,10 @@ void setup() {
   Serial.begin(115200);
 
 #ifdef ENABLE_LEDS
-  FastLED.addLeds<DOTSTAR, 13, 12, BGR>(leds, channelOffsets[0], lengths[0]).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<DOTSTAR, 14, 27, BGR>(leds, channelOffsets[1], lengths[1]).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<DOTSTAR, 26, 25, BGR>(leds, channelOffsets[2], lengths[2]).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<DOTSTAR, 33, 32, BGR>(leds, channelOffsets[3], lengths[3]).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<APA102HD, 13, 12, BGR>(leds, channelOffsets[0], lengths[0]).setRgbw(RgbwDefault());
+  FastLED.addLeds<APA102HD, 14, 27, BGR>(leds, channelOffsets[1], lengths[1]).setRgbw(RgbwDefault());
+  FastLED.addLeds<APA102HD, 26, 25, BGR>(leds, channelOffsets[2], lengths[2]).setRgbw(RgbwDefault());
+  FastLED.addLeds<APA102HD, 33, 32, BGR>(leds, channelOffsets[3], lengths[3]).setRgbw(RgbwDefault());
   FastLED.clear();
 #endif
 

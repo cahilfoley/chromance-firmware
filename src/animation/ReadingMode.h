@@ -24,8 +24,8 @@ class ReadingMode : public Animation {
     // If this is the first render, set all LEDs to a warm white color
     if (firstRender) {
       // True warm white color - reducing blue component and adding more red
-      // These values create a warm, slightly yellow-orange tint (2700K-3000K color temperature)
-      const CRGB warmWhite = CRGB(255, 223, 175);  // Warm white with reduced blue component
+      // These values create a warm, very yellow tinted white
+      const CRGB warmWhite(255, 200, 150);
 
       // Set all LEDs to warm white
       for (int i = 0; i < TOTAL_LEDS; i++) {
